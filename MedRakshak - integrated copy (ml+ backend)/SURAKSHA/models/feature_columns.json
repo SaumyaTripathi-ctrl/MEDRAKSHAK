@@ -1,0 +1,62 @@
+{
+    "features": [
+        "product_type",
+        "min_temp",
+        "max_temp",
+        "min_humidity",
+        "max_humidity",
+        "temperature",
+        "humidity",
+        "shock",
+        "temperature_deviation",
+        "humidity_deviation",
+        "time_outside_temp_range",
+        "time_outside_humidity_range",
+        "temperature_rate_of_change",
+        "max_temp_deviation",
+        "shock_count",
+        "max_shock",
+        "cumulative_temp_exposure",
+        "cumulative_humidity_exposure",
+        "temperature_excursion_count",
+        "time_since_first_excursion",
+        "external_temperature",
+        "external_humidity",
+        "rain_probability",
+        "wind_speed",
+        "cooling_status"
+    ],
+    "categorical_features": [
+        "product_type"
+    ],
+    "numeric_features": [
+        "min_temp",
+        "max_temp",
+        "min_humidity",
+        "max_humidity",
+        "temperature",
+        "humidity",
+        "shock",
+        "temperature_deviation",
+        "humidity_deviation",
+        "time_outside_temp_range",
+        "time_outside_humidity_range",
+        "temperature_rate_of_change",
+        "max_temp_deviation",
+        "shock_count",
+        "max_shock",
+        "cumulative_temp_exposure",
+        "cumulative_humidity_exposure",
+        "temperature_excursion_count",
+        "time_since_first_excursion",
+        "external_temperature",
+        "external_humidity",
+        "rain_probability",
+        "wind_speed",
+        "cooling_status"
+    ],
+    "targets": {
+        "spoilage_risk": "spoilage_risk",
+        "remaining_safe_time": "estimated_remaining_safe_time"
+    }
+}

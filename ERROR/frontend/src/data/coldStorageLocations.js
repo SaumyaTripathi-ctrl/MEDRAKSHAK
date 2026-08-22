@@ -1,0 +1,160 @@
+// Mock Cold Storage Facilities along Indian transit routes
+
+export const COLD_STORAGE_LOCATIONS = [
+  {
+    id: "CS001",
+    name: "Chennai Cold Chain Point",
+    type: "Vaccine Cold Chain",
+    latitude: 13.0500,
+    longitude: 80.2500,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 500,
+    availableCapacity: 320,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS002",
+    name: "Sriperumbudur Biotech Depot",
+    type: "Pharma Grade Storage",
+    latitude: 12.9700,
+    longitude: 79.9700,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 300,
+    availableCapacity: 120,
+    status: "INACTIVE"
+  },
+  {
+    id: "CS003",
+    name: "Kanchipuram District Vaccine Center",
+    type: "Vaccine Cold Chain",
+    latitude: 12.8342,
+    longitude: 79.7036,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 250,
+    availableCapacity: 0,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS004",
+    name: "Vellore Clinical Storage Hub",
+    type: "Vaccine Cold Chain",
+    latitude: 12.9200,
+    longitude: 79.1300,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 400,
+    availableCapacity: 180,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS005",
+    name: "Krishnagiri Logistics Cold Storage",
+    type: "General Pharma Cold Storage",
+    latitude: 12.5200,
+    longitude: 78.2100,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 600,
+    availableCapacity: 450,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS006",
+    name: "Bangalore Express Cargo Cold Chain",
+    type: "Vaccine Cold Chain",
+    latitude: 12.9800,
+    longitude: 77.6000,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 1000,
+    availableCapacity: 750,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS007",
+    name: "Vellore Ambient Pharma Hub",
+    type: "Ambient Room-Temp Facility",
+    latitude: 12.9400,
+    longitude: 79.1500,
+    minTemp: 15,
+    maxTemp: 25,
+    capacity: 400,
+    availableCapacity: 200,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS008",
+    name: "Bhopal Medical Storage Depot",
+    type: "Central Vaccine Cold Chain",
+    latitude: 23.2500,
+    longitude: 77.4100,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 300,
+    availableCapacity: 150,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS009",
+    name: "Srinagar Cold Storage Depot",
+    type: "Northern Vaccine Hub",
+    latitude: 34.0800,
+    longitude: 74.8000,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 500,
+    availableCapacity: 200,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS010",
+    name: "Mumbai Biotech Warehouse",
+    type: "Vaccine Cold Chain",
+    latitude: 19.1000,
+    longitude: 72.8800,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 400,
+    availableCapacity: 220,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS011",
+    name: "Delhi Medical Depot",
+    type: "Vaccine Cold Chain",
+    latitude: 28.5800,
+    longitude: 77.2200,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 600,
+    availableCapacity: 380,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS012",
+    name: "Kolkata Cold Storage Hub",
+    type: "Vaccine Cold Chain",
+    latitude: 22.5600,
+    longitude: 88.3500,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 350,
+    availableCapacity: 190,
+    status: "ACTIVE"
+  },
+  {
+    id: "CS013",
+    name: "Goa Cold Chain Logistics",
+    type: "Vaccine Cold Chain",
+    latitude: 15.4800,
+    longitude: 73.8100,
+    minTemp: 2,
+    maxTemp: 8,
+    capacity: 250,
+    availableCapacity: 100,
+    status: "ACTIVE"
+  }
+];

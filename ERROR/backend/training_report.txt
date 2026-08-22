@@ -1,0 +1,84 @@
+SURAKSHA ML TRAINING REPORT
+======================================================================
+
+Dataset
+----------------------------------------------------------------------
+Dataset: data\suraksha_dataset_corrected.csv
+Total rows: 30,000
+Total shipments: 300
+
+Split
+----------------------------------------------------------------------
+Train shipments: 240
+Validation shipments: 30
+Test shipments: 30
+Train rows: 24,000
+Validation rows: 3,000
+Test rows: 3,000
+
+Features
+----------------------------------------------------------------------
+product_type
+min_temp
+max_temp
+min_humidity
+max_humidity
+temperature
+humidity
+shock
+temperature_deviation
+humidity_deviation
+time_outside_temp_range
+time_outside_humidity_range
+temperature_rate_of_change
+max_temp_deviation
+shock_count
+max_shock
+cumulative_temp_exposure
+cumulative_humidity_exposure
+temperature_excursion_count
+time_since_first_excursion
+external_temperature
+external_humidity
+rain_probability
+wind_speed
+cooling_status
+
+MODEL 1 — SPOILAGE RISK
+----------------------------------------------------------------------
+Algorithm: Random Forest Regressor
+
+Train:
+  MAE:  0.485253
+  RMSE: 0.780482
+  R²:   0.999624
+
+Validation:
+  MAE:  1.738180
+  RMSE: 2.947715
+  R²:   0.993840
+
+Test:
+  MAE:  2.366842
+  RMSE: 4.129997
+  R²:   0.988360
+
+MODEL 2 — REMAINING SAFE TIME
+----------------------------------------------------------------------
+Algorithm: Random Forest Regressor
+
+Train:
+  MAE:  3.706119
+  RMSE: 12.876533
+  R²:   0.999581
+
+Validation:
+  MAE:  28.443149
+  RMSE: 67.728439
+  R²:   0.988155
+
+Test:
+  MAE:  36.548448
+  RMSE: 105.330101
+  R²:   0.971292
+

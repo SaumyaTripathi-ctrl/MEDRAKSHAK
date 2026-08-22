@@ -1,0 +1,20 @@
+{
+  "vaccine": {
+    "min_temp": 2,
+    "max_temp": 8,
+    "min_humidity": 30,
+    "max_humidity": 70
+  },
+  "refrigerated_medicine": {
+    "min_temp": 2,
+    "max_temp": 8,
+    "min_humidity": 30,
+    "max_humidity": 70
+  },
+  "room_temperature_medicine": {
+    "min_temp": 15,
+    "max_temp": 25,
+    "min_humidity": 30,
+    "max_humidity": 70
+  }
+}

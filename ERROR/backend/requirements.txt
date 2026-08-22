@@ -1,0 +1,11 @@
+pandas
+numpy
+# Pinned to match the version the trained .pkl models in models/ were
+# fit with. Loading them with a different scikit-learn version prints
+# version-mismatch warnings and can silently produce wrong predictions.
+scikit-learn==1.9.0
+joblib
+fastapi
+uvicorn
+pydantic
+requests
