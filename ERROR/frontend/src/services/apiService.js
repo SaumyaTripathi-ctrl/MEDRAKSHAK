@@ -76,4 +76,19 @@ export const apiService = {
     });
     return request(`/reroute-recommendation?${params.toString()}`);
   },
+
+  /**
+   * Clears the backend's accumulated per-shipment ML state (cumulative
+   * exposure, excursion timers, etc.) for one shipment_id. Call this at
+   * the start of every new demo run — the frontend reuses the same
+   * constant shipment_id every time, so without this, leftover state from
+   * a previous run (possibly under a different product's temperature
+   * range) keeps accumulating and can make a fresh run's very first
+   * reading predict CRITICAL immediately.
+   */
+  async resetShipment(shipmentId) {
+    return request(`/reset-shipment/${encodeURIComponent(shipmentId)}`, {
+      method: 'POST',
+    });
+  },
 };

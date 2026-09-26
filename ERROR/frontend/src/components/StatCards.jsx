@@ -11,25 +11,23 @@ function StatusPill({ tone, children }) {
 }
 
 export default function StatCards({ shipmentState }) {
-  // Use global shared shipmentState if defined, fallback to approved default dashboard values
-  const hasState = shipmentState !== undefined;
+  const isConnected = !!shipmentState && shipmentState.temperature != null;
 
-  const temp = hasState ? shipmentState.temperature : 6.4;
-  const humidity = hasState ? shipmentState.humidity : 54;
-  const shock = hasState ? shipmentState.shock : 0.32;
-  const safeTime = hasState ? shipmentState.safeTime : '3h 45m';
-  const riskScore = hasState ? shipmentState.riskScore : 24;
-  const riskLevel = hasState ? shipmentState.riskLevel : 'SAFE';
+  const temp = isConnected ? shipmentState.temperature : null;
+  const humidity = isConnected ? shipmentState.humidity : null;
+  const shock = isConnected ? shipmentState.shock : null;
+  const safeTime = isConnected ? shipmentState.safeTime : null;
+  const riskScore = isConnected ? shipmentState.riskScore : null;
+  const riskLevel = isConnected ? shipmentState.riskLevel : null;
 
-  // Range text based on product category select
-  const product = hasState ? shipmentState.product : null;
-  const rangeText = product ? `${product.minTemp}°C – ${product.maxTemp}°C` : '2°C – 8°C';
+  const product = shipmentState ? shipmentState.product : null;
+  const rangeText = product ? `${product.minTemp}°C – ${product.maxTemp}°C` : '--';
 
-  // Determine status tones
   let tempTone = 'green';
-  let tempLabel = 'NORMAL';
-  if (hasState && product) {
-    if (temp < product.minTemp || temp > product.maxTemp) {
+  let tempLabel = 'NO DATA';
+  if (isConnected) {
+    tempLabel = 'NORMAL';
+    if (product && (temp < product.minTemp || temp > product.maxTemp)) {
       if (riskLevel === 'CRITICAL') {
         tempTone = 'red';
         tempLabel = 'CRITICAL';
@@ -38,40 +36,60 @@ export default function StatCards({ shipmentState }) {
         tempLabel = 'HIGH';
       }
     }
+  } else {
+    tempTone = 'amber';
   }
 
   let humidTone = 'green';
-  let humidLabel = 'NORMAL';
-  if (humidity < 40 || humidity > 60) {
+  let humidLabel = 'NO DATA';
+  if (isConnected) {
+    humidLabel = 'NORMAL';
+    if (humidity < 40 || humidity > 60) {
+      humidTone = 'amber';
+      humidLabel = 'ABNORMAL';
+    }
+  } else {
     humidTone = 'amber';
-    humidLabel = 'ABNORMAL';
   }
 
   let shockTone = 'green';
-  let shockLabel = 'NORMAL';
-  if (shock > 1.0) {
-    shockTone = 'red';
-    shockLabel = 'SHOCK WARNING';
+  let shockLabel = 'NO DATA';
+  if (isConnected) {
+    shockLabel = 'NORMAL';
+    if (shock > 1.0) {
+      shockTone = 'red';
+      shockLabel = 'SHOCK WARNING';
+    }
+  } else {
+    shockTone = 'amber';
   }
 
   let timeTone = 'amber';
-  let timeLabel = 'MODERATE';
-  if (riskLevel === 'SAFE') {
-    timeTone = 'green';
-    timeLabel = 'NORMAL';
-  } else if (riskLevel === 'CRITICAL') {
-    timeTone = 'red';
-    timeLabel = 'CRITICAL';
+  let timeLabel = 'NO DATA';
+  if (isConnected) {
+    if (riskLevel === 'SAFE') {
+      timeTone = 'green';
+      timeLabel = 'NORMAL';
+    } else if (riskLevel === 'CRITICAL') {
+      timeTone = 'red';
+      timeLabel = 'CRITICAL';
+    } else {
+      timeLabel = 'MODERATE';
+    }
   }
 
-  let riskTone = 'green';
-  let riskLabelText = 'LOW RISK';
-  if (riskLevel === 'CRITICAL') {
-    riskTone = 'red';
-    riskLabelText = 'CRITICAL RISK';
-  } else if (riskLevel === 'WARNING') {
-    riskTone = 'amber';
-    riskLabelText = 'MODERATE RISK';
+  let riskTone = 'amber';
+  let riskLabelText = 'NO DATA';
+  if (isConnected) {
+    riskTone = 'green';
+    riskLabelText = 'LOW RISK';
+    if (riskLevel === 'CRITICAL') {
+      riskTone = 'red';
+      riskLabelText = 'CRITICAL RISK';
+    } else if (riskLevel === 'WARNING') {
+      riskTone = 'amber';
+      riskLabelText = 'MODERATE RISK';
+    }
   }
 
   return (
@@ -82,7 +100,7 @@ export default function StatCards({ shipmentState }) {
           <div className="stat-icon icon-blue"><Thermometer size={20} /></div>
           <span className="stat-label">TEMPERATURE</span>
         </div>
-        <div className="stat-value">{temp}<span className="stat-unit">°C</span></div>
+        <div className="stat-value">{temp != null ? temp : '--'}<span className="stat-unit">°C</span></div>
         <div className="stat-range">Safe Range: {rangeText}</div>
         <StatusPill tone={tempTone}>{tempLabel}</StatusPill>
       </div>
@@ -93,7 +111,7 @@ export default function StatCards({ shipmentState }) {
           <div className="stat-icon icon-blue"><Droplet size={20} /></div>
           <span className="stat-label">HUMIDITY</span>
         </div>
-        <div className="stat-value">{humidity}<span className="stat-unit">%</span></div>
+        <div className="stat-value">{humidity != null ? humidity : '--'}<span className="stat-unit">%</span></div>
         <div className="stat-range">Safe Range: 40% – 60%</div>
         <StatusPill tone={humidTone}>{humidLabel}</StatusPill>
       </div>
@@ -104,7 +122,7 @@ export default function StatCards({ shipmentState }) {
           <div className="stat-icon icon-purple"><Activity size={20} /></div>
           <span className="stat-label">SHOCK</span>
         </div>
-        <div className="stat-value">{shock}<span className="stat-unit">g</span></div>
+        <div className="stat-value">{shock != null ? shock : '--'}<span className="stat-unit">g</span></div>
         <div className="stat-range">Limit threshold: 1.0g</div>
         <StatusPill tone={shockTone}>{shockLabel}</StatusPill>
       </div>
@@ -115,7 +133,7 @@ export default function StatCards({ shipmentState }) {
           <div className="stat-icon icon-amber"><Clock size={20} /></div>
           <span className="stat-label">ESTIMATED SAFE TIME</span>
         </div>
-        <div className="stat-value">{safeTime}</div>
+        <div className="stat-value">{safeTime || '--'}</div>
         <div className="stat-range">Before risk becomes HIGH</div>
         <StatusPill tone={timeTone}>{timeLabel}</StatusPill>
       </div>
@@ -127,27 +145,7 @@ export default function StatCards({ shipmentState }) {
           <span className="stat-label">AI RISK SCORE</span>
         </div>
         <div className="stat-value-row">
-          <div className="stat-value">{riskScore}<span className="stat-unit">%</span></div>
-          <svg className="sparkline" viewBox="0 0 120 44" preserveAspectRatio="none">
-            <defs>
-              <linearGradient id="sparkFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={riskTone === 'red' ? '#ef4444' : riskTone === 'amber' ? '#f59e0b' : '#10b981'} stopOpacity="0.35" />
-                <stop offset="100%" stopColor={riskTone === 'red' ? '#ef4444' : riskTone === 'amber' ? '#f59e0b' : '#10b981'} stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <polygon
-              points="0,34 12,30 24,33 36,22 48,26 60,16 72,20 84,10 96,14 108,6 120,9 120,44 0,44"
-              fill="url(#sparkFill)"
-            />
-            <polyline
-              points="0,34 12,30 24,33 36,22 48,26 60,16 72,20 84,10 96,14 108,6 120,9"
-              fill="none"
-              stroke={riskTone === 'red' ? '#ef4444' : riskTone === 'amber' ? '#f59e0b' : '#10b981'}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+          <div className="stat-value">{riskScore != null ? riskScore : '--'}<span className="stat-unit">{riskScore != null ? '%' : ''}</span></div>
         </div>
         <div className={`stat-status status-${riskTone}`} style={{ marginTop: 14 }}>
           <span className="status-dot" />

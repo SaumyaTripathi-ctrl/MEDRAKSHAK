@@ -6,11 +6,33 @@ from pathlib import Path
 # ============================================================
 # CONFIGURATION
 # ============================================================
+# Two model pairs live side by side:
+#
+#   "real" -- spoilage_risk_model.pkl / remaining_safe_time_model.pkl
+#       Trained on real cold-chain telemetry. Weighs cumulative_temp_exposure
+#       (deviation x minutes accumulated) heavily, so it only escalates to
+#       WARNING/CRITICAL after a real excursion has been sustained for a
+#       long time (tens of minutes to hours). Correct for production use.
+#
+#   "demo" -- demo_spoilage_risk_model.pkl / demo_remaining_safe_time_model.pkl
+#       Trained on synthetic ambient-only trajectories (see
+#       scripts/generate_demo_dataset.py) and labeled with a fast-reacting,
+#       deviation-dominant formula. Escalates within seconds to ~1-2 minutes
+#       from achievable bench-test conditions (ambient drift, opening the
+#       lid). Exists ONLY so a live demo can show a believable SAFE ->
+#       WARNING -> CRITICAL progression without real refrigeration/heating
+#       equipment. Never use "demo" mode for a real shipment.
+#
+# Which pair is used per-request is selected by the `mode` argument to
+# predict() (see SensorData.model_mode in main.py), defaulting to "real".
 
 MODEL_DIR = Path("models")
 
 RISK_MODEL_PATH = MODEL_DIR / "spoilage_risk_model.pkl"
 SAFE_TIME_MODEL_PATH = MODEL_DIR / "remaining_safe_time_model.pkl"
+
+DEMO_RISK_MODEL_PATH = MODEL_DIR / "demo_spoilage_risk_model.pkl"
+DEMO_SAFE_TIME_MODEL_PATH = MODEL_DIR / "demo_remaining_safe_time_model.pkl"
 
 
 # ============================================================
@@ -19,6 +41,18 @@ SAFE_TIME_MODEL_PATH = MODEL_DIR / "remaining_safe_time_model.pkl"
 
 risk_model = joblib.load(RISK_MODEL_PATH)
 safe_time_model = joblib.load(SAFE_TIME_MODEL_PATH)
+
+# Demo models are optional -- if the files aren't present (e.g. an older
+# deployment that hasn't run generate_demo_dataset.py yet), fall back to
+# the real models so "demo" mode degrades gracefully instead of crashing.
+try:
+    demo_risk_model = joblib.load(DEMO_RISK_MODEL_PATH)
+    demo_safe_time_model = joblib.load(DEMO_SAFE_TIME_MODEL_PATH)
+    DEMO_MODELS_AVAILABLE = True
+except FileNotFoundError:
+    demo_risk_model = risk_model
+    demo_safe_time_model = safe_time_model
+    DEMO_MODELS_AVAILABLE = False
 
 
 # ============================================================
@@ -77,7 +111,7 @@ def get_risk_level(risk):
 # PREDICTION FUNCTION
 # ============================================================
 
-def predict(sensor_data):
+def predict(sensor_data, mode="real"):
     """
     Receive processed sensor/weather features
     and return ML predictions + intervention signals.
@@ -86,12 +120,18 @@ def predict(sensor_data):
     ----------
     sensor_data : dict
         Dictionary containing all required model features.
+    mode : str
+        "real" (default) uses the production model pair, trained on real
+        cold-chain data. "demo" uses the fast-reacting model pair trained
+        on synthetic ambient-only trajectories, for live bench-test demos
+        where real refrigeration/heating conditions aren't available. Any
+        other value falls back to "real".
 
     Returns
     -------
     dict
         Spoilage risk, remaining safe time,
-        risk level and intervention signals.
+        risk level, intervention signals, and which model_mode was used.
     """
 
     # --------------------------------------------------------
@@ -111,6 +151,14 @@ def predict(sensor_data):
         )
 
     # --------------------------------------------------------
+    # Select model pair
+    # --------------------------------------------------------
+
+    use_demo = (mode == "demo")
+    active_risk_model = demo_risk_model if use_demo else risk_model
+    active_safe_time_model = demo_safe_time_model if use_demo else safe_time_model
+
+    # --------------------------------------------------------
     # Convert dictionary to DataFrame
     # --------------------------------------------------------
 
@@ -123,9 +171,9 @@ def predict(sensor_data):
     # Model predictions
     # --------------------------------------------------------
 
-    risk_prediction = risk_model.predict(input_df)[0]
+    risk_prediction = active_risk_model.predict(input_df)[0]
 
-    safe_time_prediction = safe_time_model.predict(input_df)[0]
+    safe_time_prediction = active_safe_time_model.predict(input_df)[0]
 
     # --------------------------------------------------------
     # Keep predictions within valid ranges
@@ -190,6 +238,8 @@ def predict(sensor_data):
         "cooling_required": cooling_required,
 
         "urgent_action": urgent_action,
+
+        "model_mode": "demo" if use_demo else "real",
     }
 
 

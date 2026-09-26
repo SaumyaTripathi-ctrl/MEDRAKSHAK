@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}@media print{nav.toc{display:none}.wrap{grid-template-columns:1fr!important}section{break-inside:auto}h2,h3{break-after:avoid}.table-wrap,pre{break-inside:avoid}}</style>
+<title>MedRakshak Project Dossier</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..110,600..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap">
+<style>
+:root{
+  --bg:#F4F7F8; --surface:#FFFFFF; --ink:#0F1B2A; --ink-2:#2F4356; --muted:#5A6D7F;
+  --rule:#D5DFE5; --rule-strong:#9FB2BF;
+  --accent:#0A7581; --accent-soft:#DFF0F1; --accent-ink:#07555E;
+  --safe:#2A7A4B; --safe-soft:#E2F2E8; --warn:#9C6512; --warn-soft:#FBEFD9; --crit:#B3302A; --crit-soft:#F9E3E1;
+  --code-bg:#EBF1F3;
+  --display:"Archivo","Arial Narrow",Arial,sans-serif;
+  --body:"IBM Plex Sans",-apple-system,"Segoe UI",Roboto,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0C131A; --surface:#121C26; --ink:#E3EBF1; --ink-2:#B8C7D3; --muted:#8C9FB0;
+    --rule:#22303D; --rule-strong:#3C5061;
+    --accent:#45BFC9; --accent-soft:#10303A; --accent-ink:#8FDDE3;
+    --safe:#5EC28B; --safe-soft:#0F2A1D; --warn:#E3AA4D; --warn-soft:#2E2210; --crit:#EF6B60; --crit-soft:#321614;
+    --code-bg:#16222E;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0C131A; --surface:#121C26; --ink:#E3EBF1; --ink-2:#B8C7D3; --muted:#8C9FB0;
+  --rule:#22303D; --rule-strong:#3C5061;
+  --accent:#45BFC9; --accent-soft:#10303A; --accent-ink:#8FDDE3;
+  --safe:#5EC28B; --safe-soft:#0F2A1D; --warn:#E3AA4D; --warn-soft:#2E2210; --crit:#EF6B60; --crit-soft:#321614;
+  --code-bg:#16222E;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.62;padding-inline:20px;padding-block:28px 64px}
+.wrap{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:1fr;gap:32px}
+@media (min-width:1000px){.wrap{grid-template-columns:210px minmax(0,1fr);gap:48px}}
+a{color:var(--accent);text-underline-offset:2px}
+a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* TOC */
+nav.toc{font-size:13.5px;line-height:1.45}
+nav.toc .toc-inner{display:flex;flex-direction:column;gap:10px}
+@media (min-width:1000px){nav.toc .toc-inner{position:sticky;top:calc(env(safe-area-inset-top,0px) + 24px)}}
+nav.toc .toc-title{font-family:var(--display);font-weight:700;font-stretch:90%;text-transform:uppercase;letter-spacing:.08em;font-size:12px;color:var(--muted)}
+nav.toc ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:5px;counter-reset:toc}
+nav.toc li{counter-increment:toc;display:flex;gap:8px}
+nav.toc li::before{content:counter(toc);font-family:var(--mono);font-size:11.5px;color:var(--muted);min-width:18px;padding-top:1px;font-variant-numeric:tabular-nums}
+nav.toc a{color:var(--ink-2);text-decoration:none}
+nav.toc a:hover{color:var(--accent);text-decoration:underline}
+@media (max-width:999px){nav.toc ol{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 16px}}
+
+main{min-width:0;display:flex;flex-direction:column;gap:56px}
+section{display:flex;flex-direction:column;gap:16px;scroll-margin-top:24px}
+.prose{max-width:68ch}
+h1,h2,h3{font-family:var(--display);text-wrap:balance;margin:0;color:var(--ink)}
+h2{font-size:clamp(24px,3vw,30px);font-weight:750;font-stretch:88%;line-height:1.15;display:flex;gap:14px;align-items:baseline;padding-bottom:10px;border-bottom:1px solid var(--rule)}
+h2 .n{font-family:var(--mono);font-size:14px;font-weight:500;color:var(--accent);letter-spacing:.02em;flex:none}
+h3{font-size:18.5px;font-weight:700;font-stretch:95%;line-height:1.25;margin-top:8px}
+p{margin:0}
+ul,ol{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:6px}
+strong{font-weight:600}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+code,.mono{font-family:var(--mono);font-size:.88em}
+code{background:var(--code-bg);padding:1px 5px;border-radius:3px}
+pre.block{font-family:var(--mono);font-size:13.5px;line-height:1.55;background:var(--code-bg);border:1px solid var(--rule);border-radius:6px;padding:14px 16px;overflow-x:auto;margin:0;color:var(--ink)}
+sup.ref a,a.ref{font-family:var(--mono);font-size:.78em;text-decoration:none;vertical-align:super;line-height:0}
+
+/* Shipping-label header */
+.label{border:2px solid var(--ink);background:var(--surface);border-radius:4px;overflow:hidden}
+.label-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--ink);color:var(--bg);padding:9px 18px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;text-transform:uppercase}
+.label-body{padding:24px 22px 20px;display:flex;flex-direction:column;gap:18px}
+.label h1{font-size:clamp(40px,7vw,68px);font-weight:800;font-stretch:78%;line-height:.95;letter-spacing:-.01em}
+.label .subtitle{font-size:clamp(17px,2vw,20px);color:var(--ink-2);max-width:48ch;line-height:1.4}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));border-top:1px solid var(--rule-strong)}
+.field{padding:10px 14px 12px 0;border-bottom:1px solid var(--rule);display:flex;flex-direction:column;gap:2px}
+.field .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.field .v{font-weight:600;font-size:15px;line-height:1.35}
+.band-strip{border-top:1px dashed var(--rule-strong);padding-top:14px;display:flex;flex-direction:column;gap:6px}
+.band-strip .k{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.band-strip svg{width:100%;max-width:640px;height:auto;display:block}
+.band-strip .axis{stroke:var(--rule-strong);stroke-width:1.2}
+.band-strip .tick{stroke:var(--rule-strong);stroke-width:1}
+.band-strip .t{fill:var(--muted);font-family:var(--mono);font-size:11px}
+.band-strip .cold{fill:var(--accent);opacity:.85}
+.band-strip .room{fill:var(--warn);opacity:.8}
+.band-strip .bl{fill:var(--ink);font-family:var(--body);font-size:11.5px;font-weight:600}
+
+/* At a glance */
+.glance{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:6px;overflow:hidden}
+.glance div{background:var(--surface);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.glance b{font-family:var(--display);font-stretch:85%;font-size:24px;font-weight:750;font-variant-numeric:tabular-nums;color:var(--accent-ink)}
+.glance span{font-size:13px;color:var(--muted);line-height:1.35}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border:1px solid var(--rule);border-radius:6px;background:var(--surface)}
+table{border-collapse:collapse;width:100%;font-size:14.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--code-bg);white-space:nowrap}
+tr:last-child td{border-bottom:0}
+td.num{text-align:right;white-space:nowrap}
+td code{white-space:nowrap}
+
+/* Callouts */
+.note{border:1px solid var(--rule);border-left:4px solid var(--accent);background:var(--accent-soft);border-radius:4px;padding:12px 16px;max-width:76ch;display:flex;flex-direction:column;gap:6px}
+.note.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.note .h{font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+
+/* Tier pills */
+.pill{display:inline-block;font-family:var(--mono);font-size:11.5px;font-weight:500;letter-spacing:.05em;padding:1px 8px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.pill.safe{color:var(--safe);background:var(--safe-soft)}
+.pill.warn{color:var(--warn);background:var(--warn-soft)}
+.pill.crit{color:var(--crit);background:var(--crit-soft)}
+
+.two{display:grid;grid-template-columns:1fr;gap:20px}
+@media (min-width:760px){.two{grid-template-columns:1fr 1fr}}
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:16px 18px;display:flex;flex-direction:column;gap:10px}
+.panel h3{margin:0}
+
+pre.mermaid{background:var(--surface);border:1px solid var(--rule);border-radius:6px;padding:18px;overflow-x:auto;margin:0;text-align:center}
+
+ol.refs{list-style:none;padding:0;gap:12px;counter-reset:r}
+ol.refs li{display:grid;grid-template-columns:36px 1fr;gap:6px;font-size:14.5px;line-height:1.5;scroll-margin-top:24px}
+ol.refs li .rn{font-family:var(--mono);color:var(--accent);font-size:13px;padding-top:1px}
+ol.refs li .use{display:block;color:var(--muted);font-size:13px;margin-top:2px}
+ol.refs li:target{background:var(--accent-soft);outline:6px solid var(--accent-soft);border-radius:2px}
+
+footer{border-top:1px solid var(--rule);padding-top:16px;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+html{scroll-behavior:smooth}
+</style>
+
+<div class="wrap">
+<nav class="toc" aria-label="Contents">
+  <div class="toc-inner">
+    <div class="toc-title">Contents</div>
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#problem">The problem</a></li>
+      <li><a href="#ps">Problem statement fit</a></li>
+      <li><a href="#solution">Solution overview</a></li>
+      <li><a href="#architecture">Architecture &amp; data flow</a></li>
+      <li><a href="#hardware">Edge hardware</a></li>
+      <li><a href="#gateway">BLE gateway</a></li>
+      <li><a href="#backend">Backend API</a></li>
+      <li><a href="#features">Feature engineering</a></li>
+      <li><a href="#ml">Machine learning models</a></li>
+      <li><a href="#alerts">Alert logic</a></li>
+      <li><a href="#reroute">Emergency rerouting</a></li>
+      <li><a href="#dashboard">Dashboard</a></li>
+      <li><a href="#stack">Technology stack</a></li>
+      <li><a href="#related">Related work &amp; novelty</a></li>
+      <li><a href="#impact">Impact &amp; benefits</a></li>
+      <li><a href="#limits">Limitations</a></li>
+      <li><a href="#future">Future scope</a></li>
+      <li><a href="#demo">Running the demo</a></li>
+      <li><a href="#refs">References</a></li>
+    </ol>
+  </div>
+</nav>
+
+<main>
+
+<header class="label" aria-label="Project identification">
+  <div class="label-top"><span>Smart India Hackathon 2026 · Project dossier</span><span>Handle with care · Keep within band</span></div>
+  <div class="label-body">
+    <h1>MedRakshak</h1>
+    <p class="subtitle">AI-Powered Real-Time Pharmaceutical Cold Chain Monitoring and Intelligent Logistics System</p>
+    <div class="fields">
+      <div class="field"><span class="k">PS number</span><span class="v">SIH26215</span></div>
+      <div class="field"><span class="k">Organisation</span><span class="v">AICTE · Student Innovation</span></div>
+      <div class="field"><span class="k">Category</span><span class="v">Hardware</span></div>
+      <div class="field"><span class="k">Theme</span><span class="v">MedTech / BioTech / HealthTech</span></div>
+      <div class="field"><span class="k">Edge unit</span><span class="v">ChillGuard-07 (ESP32-S3)</span></div>
+      <div class="field"><span class="k">Backend</span><span class="v">SURAKSHA API (FastAPI + scikit-learn)</span></div>
+    </div>
+    <div class="band-strip">
+      <span class="k">Monitored temperature bands (from <code>product_profiles.json</code>)</span>
+      <svg viewBox="0 0 600 72" role="img" aria-label="Temperature scale from minus 5 to 35 degrees Celsius. Vaccines and refrigerated medicine band 2 to 8 degrees. Room-temperature medicine band 15 to 25 degrees.">
+        <rect class="cold" x="118" y="22" width="84" height="14" rx="2"/>
+        <rect class="room" x="300" y="22" width="140" height="14" rx="2"/>
+        <text class="bl" x="160" y="15" text-anchor="middle">Vaccine · refrigerated 2–8 °C</text>
+        <text class="bl" x="370" y="15" text-anchor="middle">Room-temp medicine 15–25 °C</text>
+        <line class="axis" x1="20" y1="44" x2="580" y2="44"/>
+        <g>
+          <line class="tick" x1="20" y1="40" x2="20" y2="48"/><text class="t" x="20" y="64" text-anchor="middle">−5</text>
+          <line class="tick" x1="90" y1="40" x2="90" y2="48"/><text class="t" x="90" y="64" text-anchor="middle">0</text>
+          <line class="tick" x1="160" y1="40" x2="160" y2="48"/><text class="t" x="160" y="64" text-anchor="middle">5</text>
+          <line class="tick" x1="230" y1="40" x2="230" y2="48"/><text class="t" x="230" y="64" text-anchor="middle">10</text>
+          <line class="tick" x1="300" y1="40" x2="300" y2="48"/><text class="t" x="300" y="64" text-anchor="middle">15</text>
+          <line class="tick" x1="370" y1="40" x2="370" y2="48"/><text class="t" x="370" y="64" text-anchor="middle">20</text>
+          <line class="tick" x1="440" y1="40" x2="440" y2="48"/><text class="t" x="440" y="64" text-anchor="middle">25</text>
+          <line class="tick" x1="510" y1="40" x2="510" y2="48"/><text class="t" x="510" y="64" text-anchor="middle">30</text>
+          <line class="tick" x1="580" y1="40" x2="580" y2="48"/><text class="t" x="572" y="64" text-anchor="middle">35 °C</text>
+        </g>
+      </svg>
+    </div>
+  </div>
+</header>
+
+<!-- 1 -->
+<section id="summary">
+  <h2><span class="n">01</span>Summary</h2>
+  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
+    <p>Vaccines, insulin and biologics lose potency when they leave their storage band, and the damage is often invisible: a spoiled vial looks the same as a good one. India already digitises temperature at fixed storage points, but the truck or cold box between two stores remains the weakest link in the chain.</p>
+    <p><strong>MedRakshak</strong> closes that gap. A sensor box (ChillGuard-07) rides inside the shipment and streams temperature, humidity, shock, lid status and GPS twice a second over Bluetooth Low Energy. A FastAPI backend turns every reading into 25 engineered features, adds live weather at the truck's position, and runs two Random Forest models that predict a <strong>spoilage risk score (0–100)</strong> and the <strong>remaining safe time</strong> before the product is compromised. The result is classified <span class="pill safe">SAFE</span> <span class="pill warn">WARNING</span> or <span class="pill crit">CRITICAL</span>, shown on a live dashboard, and pushed back to the box itself as a green, blue or red LED with an alarm.</p>
+    <p>When risk turns CRITICAL, the system searches a facility dataset for the nearest active cold store that can hold the product's temperature range, road-routes to the top candidates, and recommends the fastest diversion.</p>
+  </div>
+  <div class="glance" role="list">
+    <div role="listitem"><b>500 ms</b><span>telemetry interval from the box</span></div>
+    <div role="listitem"><b>25</b><span>engineered features per reading</span></div>
+    <div role="listitem"><b>2 × 2</b><span>Random Forest models (real + demo pairs)</span></div>
+    <div role="listitem"><b>3</b><span>alert tiers, mirrored on the box LEDs</span></div>
+    <div role="listitem"><b>28,000</b><span>facility records searched for rerouting</span></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section id="problem">
+  <h2><span class="n">02</span>The problem</h2>
+  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
+    <p>Most vaccines and many medicines must be kept between <strong>+2 °C and +8 °C</strong>. Heat exposure degrades them cumulatively, and freezing irreversibly damages freeze-sensitive vaccines such as those containing aluminium adjuvants.<sup class="ref"><a href="#ref-4">[4]</a></sup><sup class="ref"><a href="#ref-3">[3]</a></sup> WHO has estimated that as much as half of the vaccine supplied globally is wasted, from all causes including cold-chain failures.<sup class="ref"><a href="#ref-1">[1]</a></sup></p>
+  </div>
+  <h3>Evidence from India</h3>
+  <div class="prose" style="display:flex;flex-direction:column;gap:12px">
+    <p>A study that shipped temperature recorders with real vaccine vials through the routine supply chain of 10 Indian states found:<sup class="ref"><a href="#ref-2">[2]</a></sup></p>
+    <ul>
+      <li>Boxes were above 8 °C for <strong>14.3%, 13.2%, 8.3% and 14.7%</strong> of storage time at state, regional and district stores and peripheral facilities.</li>
+      <li>In <strong>transit</strong>, boxes spent about <strong>18%</strong> of the time below 0 °C and <strong>7%</strong> above 8 °C.</li>
+      <li>At the end of the study, <strong>two-thirds</strong> of the vials showed evidence of freezing in shake tests.</li>
+    </ul>
+    <p>India's electronic Vaccine Intelligence Network (eVIN) digitised vaccine stock and temperature monitoring at cold chain points. Across 12 states it cut vaccine utilisation from 305.3 to 215.0 million doses (about 90 million doses saved) and reduced facilities with stock-outs by 30.4%.<sup class="ref"><a href="#ref-7">[7]</a></sup> Counting newer vaccines, each rupee invested returned ₹1.41, projected to rise to ₹2.93 once only recurrent costs remain, and eVIN has since expanded to all 731 districts across 36 states and UTs.<sup class="ref"><a href="#ref-8">[8]</a></sup></p>
+  </div>
+  <h3>The gap MedRakshak targets</h3>
+  <div class="two">
+    <div class="panel"><h3>Monitoring stops at the store door</h3><p class="small">Digital monitoring is concentrated at fixed storage points, while the 2013 study found the worst sub-zero exposure during transport and at peripheral facilities.<sup class="ref"><a href="#ref-2">[2]</a></sup></p></div>
+    <div class="panel"><h3>Alerts are thresholds, after the fact</h3><p class="small">A threshold alarm says the band was crossed. It does not say how much damage has accumulated or how much safe time is left.</p></div>
+    <div class="panel"><h3>No automatic response</h3><p class="small">When a shipment is failing on the road, nobody is told where the nearest compatible cold store is or how long it takes to reach it.</p></div>
+    <div class="panel"><h3>Handling risks go unrecorded</h3><p class="small">Lid opening, tampering and rough handling are rarely logged alongside temperature.</p></div>
+  </div>
+  <p class="prose small muted">WHO's model guidance for time- and temperature-sensitive pharmaceutical products (TRS 961, Annex 9) sets out requirements for monitoring products during storage and transport, and is the regulatory frame this project works within.<sup class="ref"><a href="#ref-6">[6]</a></sup></p>
+</section>
+
+<!-- 3 -->
+<section id="ps">
+  <h2><span class="n">03</span>Problem statement fit</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Field</th><th>SIH26215</th></tr></thead>
+    <tbody>
+      <tr><td>Title</td><td>Student Innovation — "Cutting-edge technology in these sectors continues to be in demand. Recent shifts in healthcare trends, growing populations also present an array of opportunities for innovation."</td></tr>
+      <tr><td>Organisation</td><td>AICTE</td></tr>
+      <tr><td>Category</td><td>Hardware</td></tr>
+      <tr><td>Theme</td><td>MedTech / BioTech / HealthTech</td></tr>
+      <tr><td>Idea deadline</td><td>30 September 2026</td></tr>
+    </tbody>
+  </table></div>
+  <ul class="prose">
+    <li><strong>Category matches.</strong> MedRakshak is a physical sensor unit plus software, not a pure software product.</li>
+    <li><strong>Theme matches.</strong> Protecting the potency of medicines in transit is a healthcare problem.</li>
+    <li><strong>No domain stretch.</strong> The closest ministry problem statements (SIH26005 solar cold storage for vegetables, SIH26232 farm-to-fork IoT traceability) would force the pitch away from pharmaceuticals.</li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section id="solution">
+  <h2><span class="n">04</span>Solution overview</h2>
+  <div class="two">
+    <div class="panel"><h3>Edge: ChillGuard-07</h3><p class="small">ESP32-S3 box inside the shipment. Senses temperature, humidity, shock, lid state, cargo clearance, battery and GPS. Drives three alert LEDs, a buzzer, a servo lid lock and an IR cooling trigger.</p></div>
+    <div class="panel"><h3>Link: Web Bluetooth gateway</h3><p class="small">The browser pairs with the box over BLE, converts each JSON packet to the backend schema, stamps it with time and sends it to the API. It writes alert commands back to the box.</p></div>
+    <div class="panel"><h3>Intelligence: SURAKSHA API</h3><p class="small">FastAPI service. Per-shipment feature engineering, cached live weather, two Random Forest models, risk tiers, and emergency facility search with road routing.</p></div>
+    <div class="panel"><h3>Command: React dashboard</h3><p class="small">Live stat cards, GPS trail on an OpenStreetMap map, PCM cooling-flap status, weather, alert popups, an emergency modal with rerouting, and an event log.</p></div>
+  </div>
+  <p class="prose">The loop is closed in both directions: the box feeds the model, and the model's decision comes back to the box as a physical light and sound that a driver sees without opening any app.</p>
+</section>
+
+<!-- 5 -->
+<section id="architecture">
+  <h2><span class="n">05</span>Architecture &amp; data flow</h2>
+<pre class="mermaid">
+flowchart LR
+  A["ChillGuard-07<br/>ESP32-S3 sensors"] -->|"BLE notify · JSON every 500 ms"| B["Browser gateway<br/>Web Bluetooth"]
+  B -->|"POST /sensor-data"| C["SURAKSHA API<br/>FastAPI"]
+  C --> W["Open-Meteo weather<br/>cached 60 s"]
+  C --> F["Feature engineering<br/>25 features, per-shipment state"]
+  F --> M["Random Forest models<br/>risk + safe time"]
+  M -->|"CRITICAL"| R["Facility search + OSRM<br/>cached 30 s"]
+  M --> D["React dashboard"]
+  R --> D
+  D -->|"BLE write · ALERT_* / ACK_*"| A
+</pre>
+  <h3>One reading, end to end</h3>
+  <ol class="prose">
+    <li>The box reads its sensors and notifies a ~300-byte JSON packet over BLE (MTU raised to 517 so the packet is not truncated).</li>
+    <li>The browser parses it, maps firmware fields to the API schema, adds <code>product_type</code>, a timestamp and the previous reading's <code>cooling_status</code>, and POSTs it.</li>
+    <li>The API looks up the product's temperature and humidity band and fetches weather for the GPS point (from cache when fresh).</li>
+    <li><code>calculate_features()</code> updates the shipment's running state (time out of range, cumulative exposure, excursion count, shock count) and returns the 25-feature vector.</li>
+    <li>The selected model pair predicts spoilage risk and remaining safe time; risk is mapped to a tier.</li>
+    <li>If CRITICAL, the API finds and road-routes compatible cold stores and attaches a recommendation.</li>
+    <li>The dashboard updates, raises alerts once per excursion, and sends <code>ALERT_SAFE</code>, <code>ALERT_WARNING</code> or <code>ALERT_CRITICAL</code> to the box only when the tier changes.</li>
+  </ol>
+</section>
+
+<!-- 6 -->
+<section id="hardware">
+  <h2><span class="n">06</span>Edge hardware: ChillGuard-07</h2>
+  <p class="prose">Target board ESP32-S3 Dev Module, Arduino-ESP32 core 3.0 or later. Libraries: Adafruit DHT sensor library, TinyGPSPlus; BLE and LEDC PWM come with the core.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Component</th><th>Role</th><th>GPIO</th></tr></thead>
+    <tbody>
+      <tr><td>DHT22</td><td>Chamber temperature and humidity</td><td class="mono">4</td></tr>
+      <tr><td>HW-201 IR sensor</td><td>Lid open / anti-tamper</td><td class="mono">5</td></tr>
+      <tr><td>38 kHz IR transmitter</td><td>Sends cooling commands to the reefer unit (NEC-style burst)</td><td class="mono">6</td></tr>
+      <tr><td>Active buzzer</td><td>Door chirp and latching CRITICAL alarm</td><td class="mono">7</td></tr>
+      <tr><td>HC-SR04 ultrasonic</td><td>Cargo clearance distance</td><td class="mono">10 / 11</td></tr>
+      <tr><td>801S vibration switch</td><td>Shock / crash (hardware interrupt)</td><td class="mono">13</td></tr>
+      <tr><td>NEO-6M GPS (UART1)</td><td>Position, speed, UTC time</td><td class="mono">17 / 18</td></tr>
+      <tr><td>SG90 servo</td><td>Smart lid lock, 0° locked / 180° unlocked</td><td class="mono">21</td></tr>
+      <tr><td>Red / Green / Blue LEDs</td><td>CRITICAL / SAFE / WARNING</td><td class="mono">38 / 39 / 40</td></tr>
+      <tr><td>Battery ADC</td><td>Voltage via 10 kΩ + 10 kΩ divider</td><td class="mono">1</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Firmware behaviour</h3>
+  <ul class="prose">
+    <li><strong>BLE GATT server</strong> advertising as <code>ChillGuard-07</code>. Service <code>4fafc201-…914b</code>, telemetry characteristic (notify/read) <code>beb5483e-…26a8</code>, command characteristic (write) <code>1c95d5e3-…e87e</code>.</li>
+    <li><strong>Telemetry every 500 ms.</strong> The DHT22 can only produce a fresh sample about every 2 s, so between samples the last valid reading is repeated.</li>
+    <li><strong>On-device safety net.</strong> If temperature exceeds 8 °C or rises faster than 0.5 °C/min, the box fires an IR cooling burst on its own (at most once every 15 s), even with no phone connected.</li>
+    <li><strong>Shock detection</strong> counts interrupt edges in a fixed 1 s window (≥ 2 pulses = shock) and latches the flag for 3 s so a brief knock still reaches the next packet.</li>
+    <li><strong>Battery reading</strong> averages 16 ADC samples and applies exponential smoothing to reject noise and actuator-induced sag.</li>
+    <li><strong>Servo lock</strong> uses continuous 50 Hz LEDC hardware PWM so the latch holds torque.</li>
+    <li><strong>GPS time</strong> is converted to a Unix epoch with the days-from-civil algorithm; uptime is used until a fix exists.</li>
+    <li><strong>Non-blocking alarms</strong>: door chirp toggles every 500 ms after 5 s open; CRITICAL alarm toggles every 300 ms.</li>
+  </ul>
+
+  <h3>Telemetry packet</h3>
+<pre class="block">{"id":"CG-TRUCK-07","ts":…,"pkt":…,"temp":5.1,"hum":58.2,"t_rate":0.12,"h_rate":-0.30,
+ "lat":12.9716,"lng":77.5946,"spd":0.0,"dist":31.4,"crash":false,"door":false,"door_s":0,
+ "lock":0,"v_bat":3.84,"bat_pct":64,"led_mode":"auto","alert":"normal","ir":false,
+ "up":…,"buf":0,"ble":true}</pre>
+
+  <h3>Command set (app → box)</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Command</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td><code>ALERT_SAFE</code> · <code>ALERT_WARNING</code> · <code>ALERT_CRITICAL</code></td><td>Sets the ML-driven tier: green, blue or red LED. A fresh CRITICAL re-arms the alarm.</td></tr>
+      <tr><td><code>ACK_CRITICAL</code></td><td>Silences the latching CRITICAL alarm for this episode. The red LED keeps tracking the live tier.</td></tr>
+      <tr><td><code>ACK_WARNING</code></td><td>Shows green instead of blue for the rest of this WARNING episode. Never masks CRITICAL.</td></tr>
+      <tr><td><code>LOCK_BOX</code> · <code>UNLOCK_BOX</code></td><td>Servo lid lock to 0° or 180°.</td></tr>
+      <tr><td><code>IR_COOL_UP</code> · <code>IR_COOL_DOWN</code></td><td>Manual IR cooling commands.</td></tr>
+      <tr><td><code>RED/GREEN/BLUE_ON|OFF</code> · <code>LED_AUTO</code></td><td>Manual LED override and return to automatic.</td></tr>
+      <tr><td><code>PING</code> · <code>BUZZER_ON|OFF</code></td><td>Pairing check (two beeps) and manual buzzer.</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 7 -->
+<section id="gateway">
+  <h2><span class="n">07</span>BLE gateway</h2>
+  <ul class="prose">
+    <li>Runs in the dashboard itself using the Web Bluetooth API (Chrome or Edge, served from <code>127.0.0.1</code> or HTTPS).<sup class="ref"><a href="#ref-21">[21]</a></sup> BLE was chosen for its low power draw on battery-powered sensors.<sup class="ref"><a href="#ref-15">[15]</a></sup></li>
+    <li>Reassembles packets that arrive split across notifications and discards garbage after 4,000 characters.</li>
+    <li>Maps fields: <code>temp → temperature</code>, <code>hum → humidity</code>, <code>lat/lng → latitude/longitude</code>. The 801S is a digital switch with no magnitude, so <code>crash: true</code> maps to a representative 1.6 g shock, otherwise 0.</li>
+    <li>Stamps each reading with the browser's clock. A <strong>time-acceleration</strong> control (1×, 5×, 10×, 20×) advances this clock faster for live demonstrations without jumps.</li>
+    <li>Feeds the previous prediction's <code>cooling_required</code> back as <code>cooling_status</code>, and carries the chosen <code>model_mode</code> (real or demo).</li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section id="backend">
+  <h2><span class="n">08</span>Backend API (SURAKSHA)</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Endpoint</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /health</code></td><td>Service check</td></tr>
+      <tr><td><code>POST /sensor-data</code></td><td>Main pipeline: profile lookup, weather, features, prediction, rerouting on CRITICAL</td></tr>
+      <tr><td><code>POST /reset-shipment/{id}</code></td><td>Clears a shipment's accumulated ML state and caches at the start of each run</td></tr>
+      <tr><td><code>GET /nearby-facilities</code></td><td>Temperature-compatible, active facilities by distance</td></tr>
+      <tr><td><code>GET /reroute-recommendation</code></td><td>Same search plus road routing; returns the fastest option and alternatives</td></tr>
+    </tbody>
+  </table></div>
+  <h3>Response-time engineering</h3>
+  <ul class="prose">
+    <li><strong>Weather cache (60 s per shipment).</strong> Previously every reading made a blocking call to Open-Meteo, which was the main cause of slow responses.<sup class="ref"><a href="#ref-17">[17]</a></sup></li>
+    <li><strong>Recommendation cache (30 s).</strong> Stops the public OSRM server being called on every CRITICAL reading, which caused throttling. Cleared when risk leaves CRITICAL.</li>
+    <li><strong>Concurrent routing.</strong> Up to 5 candidates are routed in parallel with a 4 s timeout each; a Haversine straight-line estimate is used if routing fails.</li>
+    <li><strong>Facility data loaded once</strong> into memory instead of re-reading the CSV on every call.</li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section id="features">
+  <h2><span class="n">09</span>Feature engineering</h2>
+  <p class="prose">Every reading becomes a 25-feature vector. Nine of the features carry memory of the shipment so far, which is what lets the model weigh how long and how badly a product has been exposed rather than reacting to a single reading.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Group</th><th>Features</th><th class="num">Count</th></tr></thead>
+    <tbody>
+      <tr><td>Product context</td><td><code>product_type</code>, <code>min_temp</code>, <code>max_temp</code>, <code>min_humidity</code>, <code>max_humidity</code></td><td class="num">5</td></tr>
+      <tr><td>Live readings</td><td><code>temperature</code>, <code>humidity</code>, <code>shock</code></td><td class="num">3</td></tr>
+      <tr><td>Instantaneous</td><td><code>temperature_deviation</code>, <code>humidity_deviation</code>, <code>temperature_rate_of_change</code></td><td class="num">3</td></tr>
+      <tr><td>Cumulative (per shipment)</td><td><code>time_outside_temp_range</code>, <code>time_outside_humidity_range</code>, <code>max_temp_deviation</code>, <code>shock_count</code>, <code>max_shock</code>, <code>cumulative_temp_exposure</code>, <code>cumulative_humidity_exposure</code>, <code>temperature_excursion_count</code>, <code>time_since_first_excursion</code></td><td class="num">9</td></tr>
+      <tr><td>External (weather)</td><td><code>external_temperature</code>, <code>external_humidity</code>, <code>rain_probability</code>, <code>wind_speed</code></td><td class="num">4</td></tr>
+      <tr><td>Control</td><td><code>cooling_status</code></td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+<pre class="block">temperature_deviation     = distance of the reading outside [min_temp, max_temp]  (0 when inside)
+cumulative_temp_exposure += temperature_deviation × minutes elapsed since last reading   (while outside)
+shock_count              += 1 when shock ≥ 0.1 g</pre>
+  <h3>Product profiles</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Product type</th><th class="num">Temperature</th><th class="num">Humidity</th></tr></thead>
+    <tbody>
+      <tr><td>vaccine</td><td class="num">2 – 8 °C</td><td class="num">30 – 70 %</td></tr>
+      <tr><td>refrigerated_medicine</td><td class="num">2 – 8 °C</td><td class="num">30 – 70 %</td></tr>
+      <tr><td>room_temperature_medicine</td><td class="num">15 – 25 °C</td><td class="num">30 – 70 %</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose small muted">New cargo types (fruit, dairy, organs) are added by adding a profile here; the pipeline does not change.</p>
+</section>
+
+<!-- 10 -->
+<section id="ml">
+  <h2><span class="n">10</span>Machine learning models</h2>
+  <p class="prose">Both model pairs are scikit-learn pipelines: one-hot encoding of <code>product_type</code>, pass-through of the 24 numeric features, then a Random Forest regressor.<sup class="ref"><a href="#ref-13">[13]</a></sup><sup class="ref"><a href="#ref-14">[14]</a></sup> Each pair has one model for <strong>spoilage risk (0–100)</strong> and one for <strong>remaining safe time (minutes)</strong>. The pair is chosen per request with <code>model_mode</code>.</p>
+
+  <h3>Real model pair (production)</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Algorithm</td><td>RandomForestRegressor, 300 trees, <code>min_samples_leaf=2</code>, <code>random_state=42</code></td></tr>
+      <tr><td>Dataset</td><td><code>suraksha_dataset_corrected.csv</code>: 30,000 rows = 300 simulated shipments × 100 readings at 5-minute intervals, 10,000 rows per product type</td></tr>
+      <tr><td>Split</td><td>By shipment, 240 / 30 / 30 (train / validation / test), with a leakage check so no shipment appears in two sets</td></tr>
+      <tr><td>Top features (risk)</td><td><code>cumulative_temp_exposure</code> 91.4%, <code>max_temp_deviation</code> 3.8%, <code>temperature_deviation</code> 2.8%</td></tr>
+      <tr><td>Top features (safe time)</td><td><code>max_temp_deviation</code> 86.7%, <code>cumulative_temp_exposure</code> 8.0%, <code>temperature_deviation</code> 3.5%</td></tr>
+    </tbody>
+  </table></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Model</th><th>Split</th><th class="num">MAE</th><th class="num">RMSE</th><th class="num">R²</th></tr></thead>
+    <tbody>
+      <tr><td>Spoilage risk</td><td>Validation</td><td class="num">1.74</td><td class="num">2.95</td><td class="num">0.994</td></tr>
+      <tr><td>Spoilage risk</td><td>Test</td><td class="num">2.37</td><td class="num">4.13</td><td class="num">0.988</td></tr>
+      <tr><td>Remaining safe time (min)</td><td>Validation</td><td class="num">28.4</td><td class="num">67.7</td><td class="num">0.988</td></tr>
+      <tr><td>Remaining safe time (min)</td><td>Test</td><td class="num">36.5</td><td class="num">105.3</td><td class="num">0.971</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose">Because risk is driven by <em>accumulated</em> exposure (degrees × minutes), a short spike during loading does not raise a false alarm, while a sustained excursion escalates steadily. This mirrors how heat damage to vaccines is cumulative.<sup class="ref"><a href="#ref-4">[4]</a></sup></p>
+
+  <h3>Demo model pair (bench demonstrations only)</h3>
+  <p class="prose">The real model needs tens of minutes of sustained excursion to reach CRITICAL, which cannot be shown in a few-minute demo without refrigeration equipment. A separate pair is trained for live demonstrations and is never used for real shipments.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Algorithm</td><td>RandomForestRegressor, 40 trees, <code>max_depth=8</code>, <code>min_samples_leaf=15</code></td></tr>
+      <tr><td>Dataset</td><td>55,305 rows from 660 synthetic trajectories (220 per product), 2 s steps, ambient 19–36 °C, generated through the same <code>calculate_features()</code> used live</td></tr>
+      <tr><td>Label formula</td><td><code>risk = 100·(1 − e^(−dev/3.2)) × min(1, 0.35 + minutes/1.25)</code> + capped humidity and shock terms</td></tr>
+      <tr><td>Behaviour</td><td>Vaccine at 25 °C: WARNING on the first reading, CRITICAL after about 26 s. Room-temperature medicine at 32 °C: CRITICAL after about 28 s. Recovers one reading after temperature returns to band.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Outputs</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Output</th><th>Rule</th></tr></thead>
+    <tbody>
+      <tr><td><code>risk_level</code></td><td><span class="pill safe">SAFE</span> risk &lt; 30 · <span class="pill warn">WARNING</span> 30 ≤ risk &lt; 70 · <span class="pill crit">CRITICAL</span> risk ≥ 70</td></tr>
+      <tr><td><code>cooling_required</code></td><td>Temperature outside the product band (drives the PCM cooling-flap indicator)</td></tr>
+      <tr><td><code>urgent_action</code></td><td>Remaining safe time ≤ 30 min or risk ≥ 70</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 11 -->
+<section id="alerts">
+  <h2><span class="n">11</span>Alert logic</h2>
+<pre class="mermaid">
+stateDiagram-v2
+  [*] --> SAFE
+  SAFE --> WARNING: risk ≥ 30
+  SAFE --> CRITICAL: risk ≥ 70
+  WARNING --> CRITICAL: risk ≥ 70
+  WARNING --> SAFE: risk below 30
+  CRITICAL --> RecoveryHold: risk below 70
+  RecoveryHold --> CRITICAL: any CRITICAL reading
+  RecoveryHold --> WARNING: 15 s sustained, risk 30–70
+  RecoveryHold --> SAFE: 15 s sustained, risk below 30
+</pre>
+  <ul class="prose">
+    <li><strong>Escalation is immediate.</strong> A worse tier is sent to the box on the first reading that reaches it.</li>
+    <li><strong>De-escalation from CRITICAL is held for 15 s</strong> of sustained non-critical readings, so one borderline reading cannot flicker the light. The hold runs on the demo clock, so it compresses with time acceleration.</li>
+    <li><strong>The CRITICAL alarm latches.</strong> It keeps sounding after recovery until a person presses Acknowledge, so an excursion cannot pass unnoticed.</li>
+    <li><strong>Commands are sent only on tier change</strong>, not on every reading, to keep the BLE command channel quiet.</li>
+    <li><strong>Raw-sensor alerts</strong> (temperature out of band, shock above 1.0 g, lid open more than 5 s) fire once per excursion and are written to the event log with location.</li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section id="reroute">
+  <h2><span class="n">12</span>Emergency rerouting</h2>
+  <ol class="prose">
+    <li>Triggered when a reading is CRITICAL.</li>
+    <li>Filter facilities whose storage range covers the product's range (<code>storage_min ≤ min_temp</code> and <code>storage_max ≥ max_temp</code>), that are <code>ACTIVE</code>, and that have enough free capacity.</li>
+    <li>Rank by great-circle (Haversine) distance and keep the nearest 5.</li>
+    <li>Road-route all 5 in parallel with OSRM on OpenStreetMap data.<sup class="ref"><a href="#ref-16">[16]</a></sup></li>
+    <li>Recommend the lowest travel time; return the rest as alternatives. The dashboard draws the detour in red on the emergency map.</li>
+  </ol>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Facility dataset</th><th class="num">Records</th></tr></thead>
+    <tbody>
+      <tr><td>Vaccine Cold Chain Point</td><td class="num">12,890</td></tr>
+      <tr><td>Cold Storage Facility</td><td class="num">5,645</td></tr>
+      <tr><td>District Vaccine Store</td><td class="num">3,951</td></tr>
+      <tr><td>Pharmaceutical Cold Storage</td><td class="num">2,774</td></tr>
+      <tr><td>Other Cold Chain Facility</td><td class="num">1,364</td></tr>
+      <tr><td>State Vaccine Store</td><td class="num">851</td></tr>
+      <tr><td>Regional Vaccine Store</td><td class="num">525</td></tr>
+      <tr><td><strong>Total</strong> across 36 states and UTs (24,705 active)</td><td class="num"><strong>28,000</strong></td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose small muted">Records follow India's storage tiers (state, regional and district vaccine stores and cold chain points) but are synthetic. See Limitations.</p>
+</section>
+
+<!-- 13 -->
+<section id="dashboard">
+  <h2><span class="n">13</span>Dashboard</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Page</th><th>What it shows</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td>Stat cards (temperature, humidity, shock, estimated safe time, AI risk score), live shipment map with planned route and GPS trail, PCM cooling-flap status, live weather</td></tr>
+      <tr><td>Simulation</td><td>Product selection, route setup that also starts the BLE connection, real/demo model switch, time acceleration, device status with the raw last packet, Ping and Disconnect</td></tr>
+      <tr><td>Alerts</td><td>Emergency view with the recommended cold store, alternatives, road-routed detour map, and the Acknowledge control</td></tr>
+      <tr><td>Reports</td><td>Event log: timestamp, type, message, value, severity, location and coordinates</td></tr>
+    </tbody>
+  </table></div>
+  <p class="prose">Overlays: a WARNING popup (its "Acknowledge &amp; Close" sends <code>ACK_WARNING</code>) and a CRITICAL emergency modal showing temperature, safe range, remaining time, PCM flap state and the Acknowledge button. Map tiles come from OpenStreetMap and need no API key.</p>
+</section>
+
+<!-- 14 -->
+<section id="stack">
+  <h2><span class="n">14</span>Technology stack</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+    <tbody>
+      <tr><td>Edge</td><td>ESP32-S3, Arduino-ESP32 ≥ 3.0, ESP32 BLE library, Adafruit DHT, TinyGPSPlus, LEDC PWM</td></tr>
+      <tr><td>Link</td><td>Bluetooth Low Energy GATT, Web Bluetooth API</td></tr>
+      <tr><td>Backend</td><td>Python, FastAPI, Uvicorn, Pydantic, pandas, NumPy, requests</td></tr>
+      <tr><td>ML</td><td>scikit-learn 1.9.0 (pinned), joblib model files</td></tr>
+      <tr><td>Frontend</td><td>React 19, Vite 8, Leaflet 1.9, lucide-react icons</td></tr>
+      <tr><td>External services</td><td>Open-Meteo weather API, OSRM routing, OpenStreetMap tiles</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 15 -->
+<section id="related">
+  <h2><span class="n">15</span>Related work &amp; novelty</h2>
+  <ul class="prose">
+    <li>Tsang et al. built an IoT risk-monitoring system for cold chains using a wireless sensor network, cloud database and fuzzy logic.<sup class="ref"><a href="#ref-10">[10]</a></sup></li>
+    <li>Elashmawy et al. combined sensor data with AI to estimate product quality and shelf life in the produce cold chain.<sup class="ref"><a href="#ref-11">[11]</a></sup> Albrecht et al. used time-temperature indicators to support dynamic shelf life in meat supply chains.<sup class="ref"><a href="#ref-12">[12]</a></sup></li>
+    <li>Ashok et al. reviewed persistent cold-chain bottlenecks in vaccine distribution and the technologies addressing them.<sup class="ref"><a href="#ref-5">[5]</a></sup></li>
+    <li>eVIN digitised stock and temperature at Indian cold chain points with measurable savings.<sup class="ref"><a href="#ref-7">[7]</a></sup><sup class="ref"><a href="#ref-9">[9]</a></sup></li>
+  </ul>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Capability</th><th>Paper logbook</th><th>Standalone data logger</th><th>Storage-point monitoring (e.g. eVIN)</th><th>MedRakshak</th></tr></thead>
+    <tbody>
+      <tr><td>Monitoring during transit</td><td>No</td><td>Recorded, read after the trip</td><td>Focus is storage points</td><td>Live, every 500 ms</td></tr>
+      <tr><td>Alert while the problem is happening</td><td>No</td><td>Varies by device</td><td>SMS/email on breach</td><td>Dashboard + LEDs + alarm on the box</td></tr>
+      <tr><td>Risk weighted by duration of exposure</td><td>No</td><td>No</td><td>Not a stated feature</td><td>Yes, ML on cumulative exposure</td></tr>
+      <tr><td>Remaining safe time estimate</td><td>No</td><td>No</td><td>Not a stated feature</td><td>Yes</td></tr>
+      <tr><td>Automatic diversion to a compatible cold store</td><td>No</td><td>No</td><td>No</td><td>Yes, road-routed</td></tr>
+      <tr><td>Lid, tamper and shock events</td><td>No</td><td>Varies</td><td>No</td><td>Yes</td></tr>
+    </tbody>
+  </table></div>
+  <h3>What is new here</h3>
+  <ul class="prose">
+    <li>A closed loop from sensor to ML and back to the box: the model's decision becomes a physical signal on the shipment.</li>
+    <li>Two outputs, not one: how much risk has accumulated and how much time is left.</li>
+    <li>Detection linked to action: a CRITICAL prediction immediately produces a routed destination.</li>
+    <li>A dual-model design that keeps the production model honest while still allowing a convincing live demonstration.</li>
+  </ul>
+</section>
+
+<!-- 16 -->
+<section id="impact">
+  <h2><span class="n">16</span>Impact &amp; benefits</h2>
+  <div class="two">
+    <div class="panel"><h3>Health</h3><ul class="small"><li>Fewer potency-compromised doses reaching patients</li><li>Early warning before the product is lost</li></ul></div>
+    <div class="panel"><h3>Economic</h3><ul class="small"><li>Less wasted stock and fewer repeat shipments</li><li>Low-cost commodity hardware that can go on every shipment</li></ul></div>
+    <div class="panel"><h3>Operational</h3><ul class="small"><li>One live view of every shipment</li><li>Automated diversion decisions</li><li>Timestamped, geotagged event trail for audits and disputes</li></ul></div>
+    <div class="panel"><h3>Scalable</h3><ul class="small"><li>Cargo-agnostic pipeline: a new product needs only a profile and training data</li><li>Same box works for vaccines, produce, dairy and organs</li></ul></div>
+  </div>
+</section>
+
+<!-- 17 -->
+<section id="limits">
+  <h2><span class="n">17</span>Limitations</h2>
+  <div class="note warn"><span class="h">Read before presenting</span><p class="small">Judges are likely to ask about data provenance. These points are stated plainly so the team can answer them directly.</p></div>
+  <ul class="prose">
+    <li><strong>Training data is simulated.</strong> The real model's 30,000 rows are simulated shipments with labels computed from exposure formulas. The high R² shows the forest learned those labelling rules well; it is not yet validated against field spoilage outcomes. (The project README describes this dataset as real telemetry; the data itself looks generated.)</li>
+    <li><strong>Facility dataset is synthetic.</strong> Every one of the 28,000 records is marked <code>data_source = synthetic</code>. It must be replaced with official facility data before deployment.</li>
+    <li><strong>The demo model leans on a feedback signal.</strong> In the demo pair, <code>cooling_status</code> carries about 82–85% of feature importance because it is the previous reading's cooling flag. It exists for demonstrations only.</li>
+    <li><strong>Sensor limits.</strong> The DHT22 samples about every 2 s; the 801S reports only shock yes/no; the battery reading proved unreliable, so the low-battery alert is disabled.</li>
+    <li><strong>Firmware changes need bench testing.</strong> The 500 ms cadence and the new shock-detection window were written but not compiled or tested on hardware in this session.</li>
+    <li><strong>Connectivity.</strong> BLE needs a nearby phone or laptop running Chrome or Edge; there is no cellular fallback yet. The public OSRM server and OpenStreetMap tile servers have usage limits unsuitable for production traffic.</li>
+    <li><strong>Prototype shortcuts.</strong> Login and the event log are browser-storage mocks. The map currently redraws on every reading, which causes visible flicker.</li>
+  </ul>
+</section>
+
+<!-- 18 -->
+<section id="future">
+  <h2><span class="n">18</span>Future scope</h2>
+  <div class="two">
+    <div class="panel"><h3>New cargo</h3><ul class="small">
+      <li><strong>Fruits and vegetables:</strong> India loses 6.02–15.05% of fruit and 4.87–11.61% of vegetables after harvest.<sup class="ref"><a href="#ref-20">[20]</a></sup></li>
+      <li><strong>Organs, blood, biologics:</strong> tighter bands, chain-of-custody logging, compatible-hospital routing.<sup class="ref"><a href="#ref-19">[19]</a></sup></li>
+      <li><strong>Dairy and seafood:</strong> the same time-and-temperature spoilage logic applies.</li>
+    </ul></div>
+    <div class="panel"><h3>Platform</h3><ul class="small">
+      <li>Collect field data and retrain on real spoilage outcomes</li>
+      <li>GSM/LTE or LoRa link so the box reports without a phone</li>
+      <li>On-device (TinyML) risk estimate for offline operation</li>
+      <li>Integration with national systems such as eVIN</li>
+      <li>Solar-charged box with a phase-change-material cold store<sup class="ref"><a href="#ref-18">[18]</a></sup></li>
+      <li>Tamper-evident audit log for regulatory compliance</li>
+    </ul></div>
+  </div>
+</section>
+
+<!-- 19 -->
+<section id="demo">
+  <h2><span class="n">19</span>Running the demo</h2>
+<pre class="block"># Backend
+cd backend
+python -m venv venv &amp;&amp; venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn main:app --reload          # http://127.0.0.1:8000/health
+
+# Frontend
+cd frontend
+npm install
+npm run dev                        # http://127.0.0.1:5174
+
+# Firmware: flash firmware/ChillGuard_Firmware/ChillGuard_Firmware.ino
+# (ESP32S3 Dev Module, USB CDC On Boot: Enabled)</pre>
+  <h3>Demonstration sequence for judges</h3>
+  <ol class="prose">
+    <li>Log in, open Simulation, choose Vaccines, set a route and connect to <code>ChillGuard-07</code>.</li>
+    <li>Switch to Demo model. The box shows green; the dashboard shows SAFE.</li>
+    <li>Warm the sensor by hand. The box turns blue and the WARNING popup appears.</li>
+    <li>Keep warming. The box turns red with a continuous alarm; the emergency modal opens with the recommended cold store.</li>
+    <li>Open Alerts to show the road-routed detour, then press Acknowledge to silence the alarm.</li>
+    <li>Let the sensor cool. After a 15 s hold the box returns to green.</li>
+    <li>Tap the box to show a shock event, and open the lid for more than 5 s to show the tamper alert.</li>
+  </ol>
+</section>
+
+<!-- 20 -->
+<section id="refs">
+  <h2><span class="n">20</span>References</h2>
+  <p class="prose small muted">All citations below were checked against Europe PMC, Crossref or the publisher's record.</p>
+  <ol class="refs">
+    <li id="ref-1"><span class="rn">[1]</span><span>World Health Organization. <em>Monitoring vaccine wastage at country level: guidelines for programme managers.</em> Geneva: WHO; 2005. <a href="https://apps.who.int/iris/handle/10665/68463">apps.who.int/iris/handle/10665/68463</a><span class="use">Global scale of vaccine wastage.</span></span></li>
+    <li id="ref-2"><span class="rn">[2]</span><span>Murhekar MV, Dutta S, Kapoor AN, et al. Frequent exposure to suboptimal temperatures in vaccine cold-chain system in India: results of temperature monitoring in 10 states. <em>Bull World Health Organ.</em> 2013;91(12):906–913. <a href="https://doi.org/10.2471/BLT.13.119974">doi:10.2471/BLT.13.119974</a><span class="use">Core Indian evidence: exposure during storage and transit.</span></span></li>
+    <li id="ref-3"><span class="rn">[3]</span><span>Hanson CM, George AM, Sawadogo A, Schreiber B. Is freezing in the vaccine cold chain an ongoing issue? A literature review. <em>Vaccine.</em> 2017;35(17):2127–2133. <a href="https://doi.org/10.1016/j.vaccine.2016.09.070">doi:10.1016/j.vaccine.2016.09.070</a><span class="use">Freezing exposure across the cold chain.</span></span></li>
+    <li id="ref-4"><span class="rn">[4]</span><span>Kumru OS, Joshi SB, Smith DE, Middaugh CR, Prusik T, Volkin DB. Vaccine instability in the cold chain: mechanisms, analysis and formulation strategies. <em>Biologicals.</em> 2014;42(5):237–259. <a href="https://doi.org/10.1016/j.biologicals.2014.05.007">doi:10.1016/j.biologicals.2014.05.007</a><span class="use">Why heat and freeze damage matter scientifically.</span></span></li>
+    <li id="ref-5"><span class="rn">[5]</span><span>Ashok A, Brison M, LeTallec Y. Improving cold chain systems: challenges and solutions. <em>Vaccine.</em> 2017;35(17):2217–2223. <a href="https://doi.org/10.1016/j.vaccine.2016.08.045">doi:10.1016/j.vaccine.2016.08.045</a><span class="use">Cold-chain bottlenecks in vaccine distribution.</span></span></li>
+    <li id="ref-6"><span class="rn">[6]</span><span>World Health Organization. Model guidance for the storage and transport of time- and temperature-sensitive pharmaceutical products. <em>WHO Technical Report Series No. 961, Annex 9.</em> Geneva: WHO; 2011. <a href="https://www.who.int/publications/m/item/trs961-annex9">who.int/publications/m/item/trs961-annex9</a><span class="use">Regulatory frame for storage and transport.</span></span></li>
+    <li id="ref-7"><span class="rn">[7]</span><span>Gurnani V, Singh P, Haldar P, et al. Programmatic assessment of electronic Vaccine Intelligence Network (eVIN). <em>PLoS One.</em> 2020;15(11):e0241369. <a href="https://doi.org/10.1371/journal.pone.0241369">doi:10.1371/journal.pone.0241369</a><span class="use">Existing Indian system and its measured impact.</span></span></li>
+    <li id="ref-8"><span class="rn">[8]</span><span>Gurnani V, Dhalaria P, Chatterjee S, et al. Return on investment of the electronic vaccine intelligence network in India. <em>Hum Vaccin Immunother.</em> 2022;18(1):2009289. <a href="https://doi.org/10.1080/21645515.2021.2009289">doi:10.1080/21645515.2021.2009289</a><span class="use">Economic case for digital cold-chain monitoring.</span></span></li>
+    <li id="ref-9"><span class="rn">[9]</span><span>Afrin S, Saroshe S, Mantri D, Dixit S. Assessment of cold chain infrastructure and vaccine logistics before and after eVIN implementation at cold chain points in Indore district: an observational study (2014–2021). <em>Indian J Community Med.</em> 2026;51(4):680–685. <a href="https://doi.org/10.4103/ijcm.ijcm_444_25">doi:10.4103/ijcm.ijcm_444_25</a><span class="use">Recent district-level evaluation.</span></span></li>
+    <li id="ref-10"><span class="rn">[10]</span><span>Tsang YP, Choy KL, Wu CH, Ho GTS, Lam CHY, Koo PS. An Internet of Things (IoT)-based risk monitoring system for managing cold supply chain risks. <em>Ind Manag Data Syst.</em> 2018;118(7):1432–1462. <a href="https://doi.org/10.1108/IMDS-09-2017-0384">doi:10.1108/IMDS-09-2017-0384</a><span class="use">Closest prior IoT risk-monitoring architecture.</span></span></li>
+    <li id="ref-11"><span class="rn">[11]</span><span>Elashmawy R, Doron M, Kanjilal R, Brecht JK, Uysal I. The digital cold chain: sensor-driven product quality with AI. <em>Postharvest Biol Technol.</em> 2025;230:113714. <a href="https://doi.org/10.1016/j.postharvbio.2025.113714">doi:10.1016/j.postharvbio.2025.113714</a><span class="use">AI shelf-life estimation from sensors.</span></span></li>
+    <li id="ref-12"><span class="rn">[12]</span><span>Albrecht A, Ibald R, Raab V, Reichstein W, Haarer D, Kreyenschmidt J. Implementation of time temperature indicators to improve temperature monitoring and support dynamic shelf life in meat supply chains. <em>J Packag Technol Res.</em> 2020;4(1):23–32. <a href="https://doi.org/10.1007/s41783-019-00080-x">doi:10.1007/s41783-019-00080-x</a><span class="use">Dynamic shelf life from temperature history.</span></span></li>
+    <li id="ref-13"><span class="rn">[13]</span><span>Breiman L. Random forests. <em>Mach Learn.</em> 2001;45:5–32. <a href="https://doi.org/10.1023/A:1010933404324">doi:10.1023/A:1010933404324</a><span class="use">Model algorithm.</span></span></li>
+    <li id="ref-14"><span class="rn">[14]</span><span>Pedregosa F, Varoquaux G, Gramfort A, et al. Scikit-learn: machine learning in Python. <em>J Mach Learn Res.</em> 2011;12:2825–2830.<span class="use">ML library.</span></span></li>
+    <li id="ref-15"><span class="rn">[15]</span><span>Gomez C, Oller J, Paradells J. Overview and evaluation of Bluetooth Low Energy: an emerging low-power wireless technology. <em>Sensors.</em> 2012;12(9):11734–11753. <a href="https://doi.org/10.3390/s120911734">doi:10.3390/s120911734</a><span class="use">Choice of BLE link.</span></span></li>
+    <li id="ref-16"><span class="rn">[16]</span><span>Luxen D, Vetter C. Real-time routing with OpenStreetMap data. In: <em>Proc. 19th ACM SIGSPATIAL Int. Conf. on Advances in Geographic Information Systems.</em> 2011:513–516. <a href="https://doi.org/10.1145/2093973.2094062">doi:10.1145/2093973.2094062</a><span class="use">OSRM routing engine.</span></span></li>
+    <li id="ref-17"><span class="rn">[17]</span><span>Zippenfenig P. Open-Meteo.com Weather API [software]. Zenodo; 2023. <a href="https://doi.org/10.5281/zenodo.7970649">doi:10.5281/zenodo.7970649</a><span class="use">Live weather features.</span></span></li>
+    <li id="ref-18"><span class="rn">[18]</span><span>Oró E, de Gracia A, Castell A, Farid MM, Cabeza LF. Review on phase change materials (PCMs) for cold thermal energy storage applications. <em>Appl Energy.</em> 2012;99:513–533. <a href="https://doi.org/10.1016/j.apenergy.2012.03.058">doi:10.1016/j.apenergy.2012.03.058</a><span class="use">Basis for the PCM cooling concept.</span></span></li>
+    <li id="ref-19"><span class="rn">[19]</span><span>Bawa G, Singh H, Rani S, Kataria A, Min H. Smart traceable framework for transportation of transplantable organs using IPFS, IoT, and smart contracts. <em>Sci Rep.</em> 2025;15(1):23364. <a href="https://doi.org/10.1038/s41598-025-06471-2">doi:10.1038/s41598-025-06471-2</a><span class="use">Organ-transport extension.</span></span></li>
+    <li id="ref-20"><span class="rn">[20]</span><span>NABARD Consultancy Services (NABCONS). <em>Study to determine post-harvest losses of agri produces in India.</em> Ministry of Food Processing Industries; 2022. <a href="https://www.mofpi.gov.in/sites/default/files/study_report_of_post_harvest_losses.pdf">mofpi.gov.in study report (PDF)</a>; summary: <a href="https://www.pib.gov.in/PressReleasePage.aspx?PRID=2151371">PIB release</a><span class="use">Produce-loss figures for the future-scope case.</span></span></li>
+    <li id="ref-21"><span class="rn">[21]</span><span>Web Bluetooth Community Group. <em>Web Bluetooth</em> (Draft Community Group Report). W3C. <a href="https://webbluetoothcg.github.io/web-bluetooth/">webbluetoothcg.github.io/web-bluetooth</a><span class="use">Browser-side BLE gateway.</span></span></li>
+  </ol>
+</section>
+
+<footer>MedRakshak · SIH 2026 · PS SIH26215. Technical figures in this dossier are taken from the project repository: firmware, backend code, training report and datasets.</footer>
+
+</main>
+</div>
+
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+mermaid.initialize({ startOnLoad: true, theme: dark ? "dark" : "default" });
+</script>
+</body>
+</html>

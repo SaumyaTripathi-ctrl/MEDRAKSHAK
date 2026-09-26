@@ -2,7 +2,7 @@ import React from 'react';
 import StatCards from '../components/StatCards.jsx';
 import ShipmentMap from '../components/ShipmentMap.jsx';
 import WeatherPanel from '../components/WeatherPanel.jsx';
-import PredictRiskPanel from '../components/PredictRiskPanel.jsx';
+import PcmFlapStatus from '../components/PcmFlapStatus.jsx';
 
 export default function Dashboard({ shipmentState }) {
   return (
@@ -11,8 +11,8 @@ export default function Dashboard({ shipmentState }) {
       <section className="main-grid">
         <ShipmentMap shipmentState={shipmentState} />
         <div className="side-col">
+          <PcmFlapStatus active={!!shipmentState.coolingActive} />
           <WeatherPanel />
-          <PredictRiskPanel />
         </div>
       </section>
     </>

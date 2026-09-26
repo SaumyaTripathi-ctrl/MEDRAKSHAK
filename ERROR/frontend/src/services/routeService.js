@@ -1,4 +1,10 @@
-// OSRM Routing Service for Suraksha Frontend Demo
+// OSRM road-routing service.
+//
+// createRoute() resolves a real driving route between two named locations
+// (used by the Simulation page's demo start/end route builder).
+// createRouteFromCoordinates() resolves a route between two raw GPS points
+// (used for the emergency cold-storage detour path). Both fall back to a
+// straight-line/approximate path if the public OSRM API is unreachable.
 import { LOCATIONS } from '../data/locations.js';
 
 export const routeService = {
@@ -16,12 +22,11 @@ export const routeService = {
     const endCoordinates = LOCATIONS[endName];
 
     if (!startCoordinates || !endCoordinates) {
-      throw new Error(`Could not resolve coordinates for inputs: "${startInput}" or "${endInput}". Check locations database.`);
+      throw new Error(`Could not resolve coordinates for "${startInput}" or "${endInput}". Supported cities: ${Object.keys(LOCATIONS).join(', ')}.`);
     }
 
     try {
-      // Fetch real road route from OSRM public API
-      // Note: OSRM expects coordinates in [longitude, latitude] format
+      // OSRM expects coordinates in [longitude, latitude] format
       const startLngLat = `${startCoordinates[1]},${startCoordinates[0]}`;
       const endLngLat = `${endCoordinates[1]},${endCoordinates[0]}`;
       const url = `https://router.project-osrm.org/route/v1/driving/${startLngLat};${endLngLat}?overview=full&geometries=geojson`;
@@ -33,8 +38,6 @@ export const routeService = {
       if (!data.routes || data.routes.length === 0) throw new Error('No route paths resolved by OSRM');
 
       const route = data.routes[0];
-      
-      // OSRM GeoJSON coordinates are in [longitude, latitude] -> convert to [latitude, longitude] for Leaflet
       const routeCoordinates = route.geometry.coordinates.map(point => [point[1], point[0]]);
       const distanceKm = Math.round(route.distance / 1000);
       const durationMinutes = Math.round(route.duration / 60);
@@ -55,9 +58,8 @@ export const routeService = {
       };
 
     } catch (error) {
-      console.warn('OSRM routing fetch failed, falling back to mock routing generator:', error);
-      
-      // Resilient local fallback route generator
+      console.warn('OSRM routing fetch failed, falling back to an approximate path:', error);
+
       const latDiff = endCoordinates[0] - startCoordinates[0];
       const lngDiff = endCoordinates[1] - startCoordinates[1];
       const distanceKm = Math.round(Math.sqrt(latDiff * latDiff + lngDiff * lngDiff) * 111);
@@ -66,7 +68,7 @@ export const routeService = {
       const mins = durationMinutes % 60;
       const estimatedTime = hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 
-      const steps = 25; // More points for realistic curving fallback path
+      const steps = 25;
       const routeCoordinates = [];
       for (let i = 0; i <= steps; i++) {
         const t = i / steps;
@@ -115,7 +117,6 @@ export const routeService = {
 
     } catch (error) {
       console.warn('OSRM emergency route fetch failed, using linear coordinates:', error);
-      // Fallback straight line
       return [startCoords, endCoords];
     }
   }

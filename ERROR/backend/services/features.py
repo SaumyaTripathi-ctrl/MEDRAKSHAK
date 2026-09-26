@@ -47,6 +47,31 @@ def clear_all_states():
     shipment_states.clear()
 
 
+def reset_state(shipment_id):
+    """
+    Clears the stored state for one shipment only.
+
+    Why this exists: shipment_states is keyed purely by shipment_id, and
+    the frontend always uses the same constant DEFAULT_SHIPMENT_ID
+    ("CG-TRUCK-07") for every demo run, regardless of which product
+    category is selected or how many times the device has been
+    reconnected. Without an explicit reset, cumulative_temp_exposure,
+    time_outside_temp_range, max_temp_deviation, and
+    temperature_excursion_count all keep accumulating from whatever the
+    previous run did — so switching from a Vaccine test (tight 2-8C range,
+    likely run at room temperature and therefore deep in excursion) to a
+    Room-Temperature Medicine test (loose 15-25C range) inherits the old
+    run's already-large cumulative exposure and can predict CRITICAL
+    almost immediately even though the new reading is barely outside its
+    own (much wider) range. Call this once at the start of every new demo
+    run (see main.py's /reset-shipment endpoint, called from the
+    frontend's handleConnectDevice()) so each run starts from a clean
+    state.
+    """
+    if shipment_id in shipment_states:
+        del shipment_states[shipment_id]
+
+
 def calculate_temperature_deviation(temperature, min_temp, max_temp):
     if temperature < min_temp:
         return min_temp - temperature

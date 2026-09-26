@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { Maximize2, Plus, Minus } from 'lucide-react';
+import { Maximize2, Plus, Minus, Satellite } from 'lucide-react';
 import { useRoute } from '../context/RouteContext.jsx';
 
 function pinIcon(color, label, extraWidth = 0) {
@@ -61,23 +61,22 @@ export default function ShipmentMap({ shipmentState }) {
   const routeBoundsRef = useRef(null);
 
   const {
-    startName,
-    endName,
-    startCoordinates,
-    endCoordinates,
-    routeCoordinates,
+    trail,
     truckPosition,
     routeStatus,
     recommendedFacility,
-    emergencyRouteCoordinates
+    emergencyRouteCoordinates,
+    plannedRoute
   } = routeState;
 
-  const temp = shipmentState ? shipmentState.temperature : 5.0;
-  const humidity = shipmentState ? shipmentState.humidity : 54;
-  const riskLabel = shipmentState ? shipmentState.riskLevel : 'SAFE';
+  const temp = shipmentState ? shipmentState.temperature : null;
+  const humidity = shipmentState ? shipmentState.humidity : null;
+  const riskLabel = shipmentState ? shipmentState.riskLevel : null;
+
+  const hasContent = !!truckPosition || !!plannedRoute;
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || !hasContent) return;
 
     if (mapRef.current) {
       mapRef.current.remove();
@@ -92,27 +91,52 @@ export default function ShipmentMap({ shipmentState }) {
       maxZoom: 16,
     });
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      subdomains: 'abcd',
+    // Standard OpenStreetMap tiles — free, no API key/signup required, full
+    // street-level detail (labels, roads, place names). Note: this is a
+    // light/white map, not dark — CARTO's basemaps.cartocdn.com (previously
+    // used here) now requires a paid account, which is what was showing
+    // "API KEY REQUIRED" watermarked across the tiles.
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      subdomains: 'abc',
       maxZoom: 19,
     }).addTo(map);
 
     L.control.attribution({ position: 'bottomright', prefix: false })
-      .addAttribution('&copy; OpenStreetMap &copy; CARTO')
+      .addAttribution('&copy; OpenStreetMap contributors')
       .addTo(map);
 
     const fitPoints = [];
 
-    if (routeStatus === 'REROUTED' && recommendedFacility && emergencyRouteCoordinates) {
-      // 1. Render original route MUTED (gray-blue line)
-      L.polyline(routeCoordinates, {
-        color: '#475569',
+    // Planned route reference line + start/end pins, when a demo route
+    // has been set on the Simulation page.
+    if (plannedRoute && plannedRoute.routeCoordinates) {
+      L.polyline(plannedRoute.routeCoordinates, {
+        color: routeStatus === 'REROUTED' ? '#475569' : '#1e60f2',
         weight: 3.5,
-        opacity: 0.7,
-        lineCap: 'round'
+        opacity: routeStatus === 'REROUTED' ? 0.5 : 0.55,
+        dashArray: '2 10',
+        lineCap: 'round',
       }).addTo(map);
 
-      // 2. Render active emergency route (red dashed line)
+      L.marker(plannedRoute.startCoordinates, { icon: pinIcon('#10b981', 'START') }).addTo(map);
+      L.marker(plannedRoute.endCoordinates, { icon: pinIcon('#ef4444', 'DESTINATION', 30) }).addTo(map);
+      fitPoints.push(...plannedRoute.routeCoordinates);
+    }
+
+    // Actual traveled path (live GPS trail — real hardware or simulated)
+    if (trail && trail.length > 1) {
+      L.polyline(trail, {
+        color: routeStatus === 'REROUTED' ? '#64748b' : '#1e60f2',
+        weight: 4.5,
+        opacity: 0.95,
+        lineCap: 'round',
+        smoothFactor: 2,
+      }).addTo(map);
+      fitPoints.push(...trail);
+    }
+
+    if (routeStatus === 'REROUTED' && recommendedFacility && emergencyRouteCoordinates) {
+      // Active emergency route (red dashed line) to the recommended facility
       L.polyline(emergencyRouteCoordinates, {
         color: '#ef4444',
         weight: 4.5,
@@ -122,48 +146,25 @@ export default function ShipmentMap({ shipmentState }) {
         smoothFactor: 1.5
       }).addTo(map);
 
-      // Start/End pins
-      L.marker(startCoordinates, { icon: pinIcon('#64748b', 'START (ORIG)') }).addTo(map);
-      L.marker(endCoordinates, { icon: pinIcon('#b91c1c', 'DEST (ORIG)', 30) }).addTo(map);
-
-      // Recommended Cold Storage Pin
       const storageCoords = [recommendedFacility.latitude, recommendedFacility.longitude];
       L.marker(storageCoords, { icon: coldStorageIcon(recommendedFacility.name, true) }).addTo(map);
-
-      fitPoints.push(...routeCoordinates, storageCoords);
-
-    } else {
-      // Normal planned or emergency routing stage
-      L.polyline(routeCoordinates, {
-        color: '#1e60f2',
-        weight: 4.5,
-        opacity: 0.95,
-        lineCap: 'round',
-        smoothFactor: 2,
-      }).addTo(map);
-
-      // Add Start and End Pins
-      L.marker(startCoordinates, { icon: pinIcon('#10b981', 'START') }).addTo(map);
-      L.marker(endCoordinates, { icon: pinIcon('#ef4444', 'DESTINATION', 30) }).addTo(map);
-
-      fitPoints.push(...routeCoordinates);
+      fitPoints.push(...emergencyRouteCoordinates, storageCoords);
     }
 
-    // Add Truck Position Marker
-    const truckMarker = L.marker(truckPosition, { icon: truckIcon }).addTo(map);
-    truckMarker
-      .bindPopup(
+    if (truckPosition) {
+      const truckMarker = L.marker(truckPosition, { icon: truckIcon }).addTo(map);
+      truckMarker.bindPopup(
         `<div class="map-tooltip">
            <div class="map-tooltip-title">SUR-001</div>
-           <div class="map-tooltip-row">Temp: ${temp}°C</div>
-           <div class="map-tooltip-row">Humidity: ${humidity}%</div>
-           <div class="map-tooltip-row">Risk: <strong style="color: ${riskLabel === 'CRITICAL' ? '#ef4444' : riskLabel === 'WARNING' ? '#f59e0b' : '#10b981'}">${riskLabel}</strong></div>
+           ${temp != null ? `<div class="map-tooltip-row">Temp: ${temp}°C</div>` : ''}
+           ${humidity != null ? `<div class="map-tooltip-row">Humidity: ${humidity}%</div>` : ''}
+           ${riskLabel ? `<div class="map-tooltip-row">Risk: <strong style="color: ${riskLabel === 'CRITICAL' ? '#ef4444' : riskLabel === 'WARNING' ? '#f59e0b' : '#10b981'}">${riskLabel}</strong></div>` : ''}
          </div>`,
         { closeButton: false, className: 'map-tooltip-popup', offset: [0, -6] }
       );
-    
-    truckMarker.openPopup();
-    fitPoints.push(truckPosition);
+      truckMarker.openPopup();
+      fitPoints.push(truckPosition);
+    }
 
     const bounds = L.latLngBounds(fitPoints);
     routeBoundsRef.current = bounds;
@@ -181,49 +182,80 @@ export default function ShipmentMap({ shipmentState }) {
       map.remove();
       mapRef.current = null;
     };
-  }, [routeState, shipmentState, startCoordinates, endCoordinates, routeCoordinates, truckPosition, routeStatus]);
+  }, [trail, truckPosition, routeStatus, recommendedFacility, emergencyRouteCoordinates, plannedRoute, temp, humidity, riskLabel, hasContent]);
 
   return (
     <div className="panel map-panel">
       <div className="panel-header">
         <h3>LIVE SHIPMENT TRACKING</h3>
-        <div className="map-controls">
-          <button
-            className="map-ctrl-btn"
-            aria-label="Fit route"
-            onClick={() => routeBoundsRef.current && mapRef.current?.fitBounds(routeBoundsRef.current, { padding: [70, 70] })}
-          >
-            <Maximize2 size={14} />
-          </button>
-          <button className="map-ctrl-btn" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
-            <Plus size={15} />
-          </button>
-          <button className="map-ctrl-btn" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
-            <Minus size={15} />
-          </button>
-        </div>
-      </div>
-
-      <div className="map-canvas" ref={containerRef} />
-
-      <div className="map-legend">
-        <span className="legend-item">
-          <span className="legend-swatch solid" style={{ borderTopColor: routeStatus === 'REROUTED' ? '#475569' : '#1e60f2' }} />
-          {routeStatus === 'REROUTED' ? 'Original Route (Muted)' : 'Planned Route'}
-        </span>
-        {routeStatus === 'REROUTED' && (
-          <>
-            <span className="legend-item">
-              <span className="legend-swatch dashed" style={{ borderTopColor: '#ef4444' }} />
-              Active Emergency Route
-            </span>
-            <span className="legend-item">
-              <span className="legend-swatch dot-swatch" style={{ background: '#10b981' }} />
-              Recommended Facility
-            </span>
-          </>
+        {hasContent && (
+          <div className="map-controls">
+            <button
+              className="map-ctrl-btn"
+              aria-label="Fit route"
+              onClick={() => routeBoundsRef.current && mapRef.current?.fitBounds(routeBoundsRef.current, { padding: [70, 70] })}
+            >
+              <Maximize2 size={14} />
+            </button>
+            <button className="map-ctrl-btn" aria-label="Zoom in" onClick={() => mapRef.current?.zoomIn()}>
+              <Plus size={15} />
+            </button>
+            <button className="map-ctrl-btn" aria-label="Zoom out" onClick={() => mapRef.current?.zoomOut()}>
+              <Minus size={15} />
+            </button>
+          </div>
         )}
       </div>
+
+      {hasContent ? (
+        <>
+          <div className="map-canvas" ref={containerRef} />
+          <div className="map-legend">
+            {plannedRoute && (
+              <span className="legend-item">
+                <span className="legend-swatch dashed" style={{ borderTopColor: routeStatus === 'REROUTED' ? '#475569' : '#1e60f2' }} />
+                Planned Route
+              </span>
+            )}
+            <span className="legend-item">
+              <span className="legend-swatch solid" style={{ borderTopColor: routeStatus === 'REROUTED' ? '#64748b' : '#1e60f2' }} />
+              {routeStatus === 'REROUTED' ? 'Shipment Path (Diverting)' : 'Live Shipment Path'}
+            </span>
+            {routeStatus === 'REROUTED' && (
+              <>
+                <span className="legend-item">
+                  <span className="legend-swatch dashed" style={{ borderTopColor: '#ef4444' }} />
+                  Active Emergency Route
+                </span>
+                <span className="legend-item">
+                  <span className="legend-swatch dot-swatch" style={{ background: '#10b981' }} />
+                  Recommended Facility
+                </span>
+              </>
+            )}
+          </div>
+        </>
+      ) : (
+        <div
+          className="map-canvas"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            color: '#64748b',
+            textAlign: 'center',
+            padding: 24
+          }}
+        >
+          <Satellite size={28} />
+          <p style={{ margin: 0 }}>No active shipment yet.</p>
+          <p className="product-range-text" style={{ margin: 0 }}>
+            Set a route and start the simulated stream, or connect a real ESP32 device, from the Simulation page.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

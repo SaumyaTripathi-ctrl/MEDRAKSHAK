@@ -1,7 +1,8 @@
 import React from 'react';
-import { ShieldAlert, Snowflake, Mail } from 'lucide-react';
+import { ShieldAlert, Snowflake, Mail, BellOff } from 'lucide-react';
+import PcmFlapStatus from './PcmFlapStatus.jsx';
 
-export default function EmergencyModal({ isOpen, alertData, onViewAlert, onGoToEmergency }) {
+export default function EmergencyModal({ isOpen, alertData, onViewAlert, onGoToEmergency, onAcknowledge, acknowledged, coolingActive }) {
   if (!isOpen || !alertData) return null;
 
   const { temperature, safeRange, remainingTime, recipients } = alertData;
@@ -41,6 +42,12 @@ export default function EmergencyModal({ isOpen, alertData, onViewAlert, onGoToE
             <span>❄ COOLING SYSTEM ACTIVATED</span>
           </div>
 
+          {/* PCM flap — kept as its own distinct indicator (novelty), not
+              merged into the cooling banner above. Reflects the same
+              cooling_required signal the rest of the app already tracks. */}
+          <PcmFlapStatus active={!!coolingActive} variant="banner" />
+          <div style={{ height: 22 }} />
+
           <div className="notification-status-box">
             <div className="notif-status-header">
               <Mail size={16} />
@@ -60,6 +67,15 @@ export default function EmergencyModal({ isOpen, alertData, onViewAlert, onGoToE
         <div className="emergency-actions">
           <button className="emergency-btn-secondary" onClick={onViewAlert}>
             VIEW ALERT
+          </button>
+          <button
+            className="emergency-btn-ack"
+            onClick={onAcknowledge}
+            disabled={acknowledged}
+            title="Silences the ESP32's critical buzzer. The alert tier and LEDs keep tracking live readings regardless."
+          >
+            <BellOff size={15} style={{ marginRight: 6, verticalAlign: -2 }} />
+            {acknowledged ? 'ALARM SILENCED' : 'ACKNOWLEDGE'}
           </button>
           <button className="emergency-btn-primary" onClick={onGoToEmergency}>
             GO TO EMERGENCY ROUTE

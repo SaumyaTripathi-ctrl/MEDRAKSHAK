@@ -19,13 +19,23 @@ DATA_PATH = (
 # ---------------------------------------------------------
 # LOAD DATASET
 # ---------------------------------------------------------
+# Cached at module level after the first call -- this ~28k-row CSV was
+# previously re-read from disk on every single call (including once per
+# CRITICAL /sensor-data reading, every ~2 seconds during a live episode),
+# which is pure wasted latency on every request. The data file doesn't
+# change at runtime, so loading it once and reusing the DataFrame is safe.
+
+_cold_storage_df_cache = None
+
 
 def load_cold_storage_data():
     """
-    Loads the cold-storage facility dataset.
+    Loads the cold-storage facility dataset (cached after first load).
     """
-    df = pd.read_csv(DATA_PATH)
-    return df
+    global _cold_storage_df_cache
+    if _cold_storage_df_cache is None:
+        _cold_storage_df_cache = pd.read_csv(DATA_PATH)
+    return _cold_storage_df_cache
 
 
 # ---------------------------------------------------------

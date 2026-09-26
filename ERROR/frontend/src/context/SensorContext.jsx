@@ -1,68 +1,42 @@
 // SensorContext.jsx
 //
-// This is the piece that actually closes the loop described in the
-// project's architecture doc:
+// This is the piece that closes the loop described in the project's
+// architecture doc:
 //
 //   ESP32 (BLE JSON) -> BLE gateway -> field conversion -> FastAPI
 //   /sensor-data -> features + weather + ML -> prediction -> frontend
 //
-// Because no physical ESP32 hardware is connected to this session, this
-// context ships TWO ways to feed the pipeline:
-//
-//   1. startSimulatedStream() - generates packets in EXACTLY the shape the
-//      ESP32-S3 firmware documentation describes ({id, ts, pkt, temp, hum,
-//      lat, lng, g, crash, door, alert, ir, buz, ble}) every 2 seconds
-//      (matching the real device's BLE notify rate) and runs them through
-//      the real conversion + POST /sensor-data pipeline. This lets the
-//      whole system be exercised end-to-end today, with real ML
-//      predictions, without hardware.
-//
-//   2. connectBluetooth() - a real Web Bluetooth client that connects to a
-//      device advertising as BLE_DEVICE_NAME ("ChillGuard-07"), subscribes
-//      to notifications, and feeds whatever JSON the firmware sends
-//      through the SAME conversion + POST pipeline. Once the real board is
-//      flashed, this path is ready to use as-is (only the service/
-//      characteristic UUID constants below may need updating to match the
-//      firmware's actual GATT definitions).
-//
-// Both paths funnel into convertAndSend(), so nothing downstream cares
-// which one produced the reading.
+// connectBluetooth() is a real Web Bluetooth client for the ChillGuard-07
+// ESP32-S3 edge unit (see HARDWARE_INTEGRATION_SPEC.md). It subscribes to
+// the telemetry characteristic, reassembles/parses the JSON the firmware
+// notifies every ~2s, and feeds it through convertAndSend(), which
+// converts the firmware's field names into the backend's schema and POSTs
+// to /sensor-data. It also acquires the command characteristic so the app
+// can write control strings (PING, LOCK_BOX, etc.) back to the device.
 
 import React, { createContext, useCallback, useContext, useRef, useState } from 'react';
 import { apiService } from '../services/apiService.js';
-import { DEFAULT_SHIPMENT_ID } from '../config.js';
+import { DEFAULT_SHIPMENT_ID, BLE_DEVICE_NAME } from '../config.js';
 
 const SensorContext = createContext(null);
 
 // ---------------------------------------------------------------------
-// BLE configuration
-//
-// The ESP32-S3 firmware advertises as BLE_DEVICE_NAME. These UUIDs use
-// the Nordic UART Service convention (a very common pattern for
-// "stream JSON over a single notify characteristic" ESP32 projects).
-// If the real firmware defines its own custom UUIDs, replace the two
-// constants below with the exact values from the firmware's
-// BLEService / BLECharacteristic setup.
+// BLE configuration — confirmed values from HARDWARE_INTEGRATION_SPEC.md
+// (ChillGuard ESP32-S3 firmware). Update these only if the firmware's own
+// UUID #defines change.
 // ---------------------------------------------------------------------
-const BLE_DEVICE_NAME = 'ChillGuard-07';
-const BLE_SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const BLE_NOTIFY_CHARACTERISTIC_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+const BLE_SERVICE_UUID = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+const BLE_TELEMETRY_CHARACTERISTIC_UUID = 'beb5483e-36e1-4688-b7f5-ea07361b26a8'; // NOTIFY/READ
+const BLE_COMMAND_CHARACTERISTIC_UUID = '1c95d5e3-d8f7-413a-bf3d-7a2e5d7be87e'; // WRITE/WRITE_NO_RESPONSE
 
-// Product limits, mirrored from backend/data/product_profiles.json, used
-// only to script a realistic simulated drift. The backend is always the
-// source of truth for the actual limits used in the ML feature vector.
-const PRODUCT_LIMITS = {
-  vaccine: { min_temp: 2, max_temp: 8 },
-  refrigerated_medicine: { min_temp: 2, max_temp: 8 },
-  room_temperature_medicine: { min_temp: 15, max_temp: 25 },
-};
-
-function shockMagnitudeFromG(g) {
-  // The accelerometer reads ~1.00g at rest (gravity). We report the
-  // deviation from that baseline as the "shock" magnitude the ML model
-  // was trained on.
-  return Math.round(Math.max(0, Math.abs(g - 1.0)) * 100) / 100;
-}
+// The 801S vibration sensor on the real edge unit is a digital switch (a
+// vibration-pulse counter compared against a threshold), not an analog
+// accelerometer — the firmware only ever reports a boolean `crash` flag,
+// no g-force magnitude. The backend's ML feature vector wants a numeric
+// "shock" value (its own shock_count feature fires at shock >= 0.1g), so
+// a detected crash is mapped to a fixed representative magnitude clearly
+// above every threshold the app or backend act on.
+const CRASH_SHOCK_VALUE = 1.6;
 
 export function formatMinutes(totalMinutes) {
   if (totalMinutes === null || totalMinutes === undefined || Number.isNaN(totalMinutes)) {
@@ -75,32 +49,65 @@ export function formatMinutes(totalMinutes) {
 }
 
 export function SensorProvider({ children }) {
-  const [connectionMode, setConnectionMode] = useState('idle'); // idle | simulated | ble
+  const [connectionMode, setConnectionMode] = useState('idle'); // idle | ble
   const [status, setStatus] = useState('disconnected'); // disconnected | connecting | connected | error
   const [statusMessage, setStatusMessage] = useState('');
-  const [lastPacket, setLastPacket] = useState(null); // raw ESP32-shaped packet
+  const [lastPacket, setLastPacket] = useState(null); // raw ESP32 telemetry packet (all firmware fields)
   const [lastPayload, setLastPayload] = useState(null); // what we POSTed to /sensor-data
   const [lastResponse, setLastResponse] = useState(null); // backend response (prediction, weather, cold_storage_recommendation)
   const [history, setHistory] = useState([]);
 
-  const intervalRef = useRef(null);
-  const tickRef = useRef(0);
-  const pktCounterRef = useRef(0);
+  // "real" = production model pair (trained on real cold-chain data,
+  // escalates over tens of minutes to hours). "demo" = fast-reacting model
+  // pair trained on synthetic ambient-only trajectories, for live
+  // bench-test demos (escalates within seconds to ~1-2 minutes). See
+  // backend/predict.py's module docstring for the full rationale.
+  const [modelMode, setModelModeState] = useState('real');
+  const modelModeRef = useRef('real');
+
+  // Demo time acceleration. The backend's feature engineering
+  // (calculate_features in services/features.py) derives its "minutes
+  // outside range" ramp from the gap between consecutive readings'
+  // `timestamp` values -- and that timestamp already comes from the
+  // BROWSER's own clock (see convertAndSend below), not from the ESP32's
+  // GPS module, so a GPS fix (often unavailable indoors, e.g. in a
+  // classroom) was never actually required for it. What IS genuinely
+  // useful for a live demo is being able to speed that clock up on
+  // purpose -- e.g. bump to 10x right after WARNING is reached so the
+  // audience isn't stuck waiting the full real-time ramp to see CRITICAL.
+  // timeAccelRef is the live multiplier; simulatedClockRef is the
+  // accelerated clock itself, advanced by (real elapsed ms * multiplier)
+  // on every packet rather than jumping straight to Date.now(), so a
+  // multiplier change mid-run doesn't cause a discontinuous jump.
+  const [timeAcceleration, setTimeAccelerationState] = useState(1);
+  const timeAccelRef = useRef(1);
+  const simulatedClockRef = useRef(null);
+  const lastRealTickMsRef = useRef(null);
+
+  const setTimeAcceleration = useCallback((multiplier) => {
+    const next = Number(multiplier) > 0 ? Number(multiplier) : 1;
+    timeAccelRef.current = next;
+    setTimeAccelerationState(next);
+  }, []);
+
   const coolingStatusRef = useRef(0);
   const bleBufferRef = useRef('');
   const bleDeviceRef = useRef(null);
+  const commandCharRef = useRef(null);
   const configRef = useRef({
     shipmentId: DEFAULT_SHIPMENT_ID,
     productType: 'vaccine',
-    originLat: 13.0827,
-    originLng: 80.2707,
   });
 
+  // Live-switchable from the UI (no BLE reconnect needed) — the next
+  // packet sent to /sensor-data just carries the new mode.
+  const setModelMode = useCallback((mode) => {
+    const next = mode === 'demo' ? 'demo' : 'real';
+    modelModeRef.current = next;
+    setModelModeState(next);
+  }, []);
+
   const stopStream = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
     if (bleDeviceRef.current && bleDeviceRef.current.gatt && bleDeviceRef.current.gatt.connected) {
       try {
         bleDeviceRef.current.gatt.disconnect();
@@ -109,8 +116,7 @@ export function SensorProvider({ children }) {
       }
     }
     bleDeviceRef.current = null;
-    tickRef.current = 0;
-    pktCounterRef.current = 0;
+    commandCharRef.current = null;
     coolingStatusRef.current = 0;
     setConnectionMode('idle');
     setStatus('disconnected');
@@ -118,24 +124,41 @@ export function SensorProvider({ children }) {
   }, []);
 
   // ---------------------------------------------------------------
-  // Core pipeline: raw ESP32-shaped packet -> converted payload -> POST
+  // Core pipeline: raw ESP32 telemetry packet -> converted payload -> POST
   // ---------------------------------------------------------------
   const convertAndSend = useCallback(async (packet) => {
     const { shipmentId, productType } = configRef.current;
+
+    // The firmware's `ts` is uptime (millis()/1000), not a real clock —
+    // the backend needs a real timestamp, so we stamp it here when the
+    // gateway receives the reading. This is also the simulated-time clock
+    // for demo acceleration (see timeAccelRef above): it starts at the
+    // real time of the first packet and, from then on, advances by
+    // (real elapsed ms since the last packet * the current multiplier)
+    // rather than just reading Date.now() directly, so speeding up mid-run
+    // doesn't cause a jump — only the RATE changes.
+    const nowRealMs = Date.now();
+    if (simulatedClockRef.current == null || lastRealTickMsRef.current == null) {
+      simulatedClockRef.current = new Date(nowRealMs);
+    } else {
+      const realElapsedMs = Math.max(0, nowRealMs - lastRealTickMsRef.current);
+      simulatedClockRef.current = new Date(
+        simulatedClockRef.current.getTime() + realElapsedMs * timeAccelRef.current
+      );
+    }
+    lastRealTickMsRef.current = nowRealMs;
 
     const payload = {
       shipment_id: packet.id || shipmentId,
       product_type: productType,
       temperature: Number(packet.temp),
       humidity: Number(packet.hum),
-      shock: shockMagnitudeFromG(Number(packet.g)),
+      shock: packet.crash ? CRASH_SHOCK_VALUE : 0,
       latitude: Number(packet.lat),
       longitude: Number(packet.lng),
-      // The ESP32's `ts` field is device uptime (millis()), not a real
-      // clock — the backend needs a real timestamp, so we stamp it here
-      // when the gateway receives the reading.
-      timestamp: new Date().toISOString(),
+      timestamp: simulatedClockRef.current.toISOString(),
       cooling_status: coolingStatusRef.current,
+      model_mode: modelModeRef.current,
     };
 
     setLastPacket(packet);
@@ -175,150 +198,6 @@ export function SensorProvider({ children }) {
   }, []);
 
   // ---------------------------------------------------------------
-  // Simulated ESP32 stream (no hardware required)
-  // ---------------------------------------------------------------
-  const buildSimulatedPacket = useCallback(() => {
-    const tick = tickRef.current;
-    const { productType, shipmentId, originLat, originLng } = configRef.current;
-    const limits = PRODUCT_LIMITS[productType] || PRODUCT_LIMITS.vaccine;
-    const baseline = (limits.min_temp + limits.max_temp) / 2;
-    const overshoot = limits.max_temp + 6;
-
-    let temp = baseline;
-    let g = 1.0;
-    let crash = false;
-    let door = false;
-
-    if (tick < 3) {
-      // Stage 1: SAFE baseline (small jitter for realism)
-      temp = baseline + (Math.random() - 0.5) * 0.4;
-    } else if (tick === 3) {
-      // Stage 2: a single shock / vibration event
-      temp = baseline + (Math.random() - 0.5) * 0.4;
-      g = 2.6;
-      crash = true;
-    } else if (tick < 14) {
-      // Stage 3 -> 4: cooling loss — temperature ramps up past the safe
-      // range and keeps climbing until it plateaus at a clearly critical
-      // level. The real spoilage-risk / safe-time numbers come from the
-      // trained ML model reacting to this drift, not from a script.
-      const rampProgress = Math.min(1, (tick - 4) / 9);
-      temp = baseline + (overshoot - baseline) * rampProgress;
-      g = 1.0 + (Math.random() - 0.5) * 0.05;
-    } else {
-      temp = overshoot + (Math.random() - 0.5) * 0.5;
-      g = 1.0 + (Math.random() - 0.5) * 0.05;
-    }
-
-    const humidity = 50 + (Math.random() - 0.5) * 6;
-
-    pktCounterRef.current += 1;
-    tickRef.current += 1;
-
-    return {
-      id: shipmentId,
-      ts: Date.now(),
-      pkt: pktCounterRef.current,
-      temp: Math.round(temp * 100) / 100,
-      hum: Math.round(humidity * 100) / 100,
-      lat: originLat,
-      lng: originLng,
-      g: Math.round(g * 100) / 100,
-      crash,
-      door,
-      alert: tick < 3 ? 'normal' : tick < 4 ? 'shock' : tick < 14 ? 'warning' : 'critical',
-      ir: false,
-      buz: tick >= 3,
-      ble: true,
-    };
-  }, []);
-
-  const startSimulatedStream = useCallback((productType, origin, shipmentId) => {
-    stopStream();
-    configRef.current = {
-      shipmentId: shipmentId || DEFAULT_SHIPMENT_ID,
-      productType: productType || 'vaccine',
-      originLat: origin && origin[0] != null ? origin[0] : 13.0827,
-      originLng: origin && origin[1] != null ? origin[1] : 80.2707,
-    };
-    tickRef.current = 0;
-    pktCounterRef.current = 0;
-    coolingStatusRef.current = 0;
-    setConnectionMode('simulated');
-    setStatus('connecting');
-    setStatusMessage('Streaming simulated ESP32-S3 packets every 2s...');
-
-    // Send the first reading immediately, then every 2s (matching the
-    // real firmware's BLE notify cadence described in the architecture
-    // doc), so the UI updates right away instead of waiting 2s.
-    convertAndSend(buildSimulatedPacket());
-    intervalRef.current = setInterval(() => {
-      convertAndSend(buildSimulatedPacket());
-    }, 2000);
-  }, [buildSimulatedPacket, convertAndSend, stopStream]);
-
-  // ---------------------------------------------------------------
-  // Extreme-case test: fires a short burst of deliberately out-of-range
-  // readings back-to-back (instead of the gradual 2s-per-tick drift) so
-  // you can see the CRITICAL / emergency-reroute path without waiting
-  // for the natural ramp. The backend's feature engine is stateful per
-  // shipment_id (services/features.py), so several extreme readings in
-  // quick succession build up cumulative exposure / time-outside-range
-  // just like several minutes of real drift would.
-  // ---------------------------------------------------------------
-  const sendExtremeTestBurst = useCallback(async (productType, origin, shipmentId, packetCount = 8) => {
-    stopStream();
-    const limits = PRODUCT_LIMITS[productType] || PRODUCT_LIMITS.vaccine;
-    const extremeTemp = limits.max_temp + 15; // far outside the safe range
-    const extremeHumidity = 88; // also out of the 40-60% "normal" band
-
-    configRef.current = {
-      shipmentId: shipmentId || DEFAULT_SHIPMENT_ID,
-      productType: productType || 'vaccine',
-      originLat: origin && origin[0] != null ? origin[0] : 13.0827,
-      originLng: origin && origin[1] != null ? origin[1] : 80.2707,
-    };
-    pktCounterRef.current = 0;
-    coolingStatusRef.current = 0;
-    setConnectionMode('test');
-    setStatus('connecting');
-    setStatusMessage(`Sending ${packetCount} extreme test readings back-to-back...`);
-
-    let lastResult = null;
-    for (let i = 0; i < packetCount; i += 1) {
-      pktCounterRef.current += 1;
-      const packet = {
-        id: configRef.current.shipmentId,
-        ts: Date.now(),
-        pkt: pktCounterRef.current,
-        temp: Math.round((extremeTemp + (Math.random() - 0.5)) * 100) / 100,
-        hum: Math.round((extremeHumidity + (Math.random() - 0.5) * 2) * 100) / 100,
-        lat: configRef.current.originLat,
-        lng: configRef.current.originLng,
-        g: i === 0 ? 2.8 : 1.0, // one shock event on the first packet
-        crash: i === 0,
-        door: false,
-        alert: 'critical',
-        ir: false,
-        buz: true,
-        ble: true,
-      };
-      // eslint-disable-next-line no-await-in-loop
-      lastResult = await convertAndSend(packet);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => setTimeout(resolve, 350));
-    }
-
-    setStatus(lastResult ? 'connected' : 'error');
-    setStatusMessage(
-      lastResult
-        ? `Sent ${packetCount} extreme readings. Last risk_level: ${lastResult.prediction ? lastResult.prediction.risk_level : 'unknown'}.`
-        : 'Extreme test failed — check that the backend is running.'
-    );
-    setConnectionMode('idle');
-  }, [convertAndSend, stopStream]);
-
-  // ---------------------------------------------------------------
   // Real ESP32 over Web Bluetooth
   // ---------------------------------------------------------------
   const handleBleNotification = useCallback((event) => {
@@ -329,10 +208,11 @@ export function SensorProvider({ children }) {
       bleBufferRef.current = '';
       convertAndSend(packet);
     } catch (_) {
-      // JSON notifications can be split across multiple BLE notify
-      // events if they exceed the negotiated MTU — keep buffering until
-      // we have a full, parseable JSON object. Guard against garbage
-      // data accumulating forever.
+      // The telemetry JSON (~230 bytes) normally fits one notify event at
+      // the negotiated 512-byte MTU, but keep buffering defensively in
+      // case a given connection negotiates a smaller MTU and the JSON
+      // arrives split across notifications. Guard against garbage data
+      // accumulating forever.
       if (bleBufferRef.current.length > 4000) {
         bleBufferRef.current = '';
       }
@@ -353,9 +233,12 @@ export function SensorProvider({ children }) {
     configRef.current = {
       shipmentId: shipmentId || DEFAULT_SHIPMENT_ID,
       productType: productType || 'vaccine',
-      originLat: 13.0827,
-      originLng: 80.2707,
     };
+    // Fresh simulated clock for this run — matches the backend's own
+    // per-shipment state reset (see apiService.resetShipment, called
+    // right before this from App.jsx's handleConnectDevice).
+    simulatedClockRef.current = null;
+    lastRealTickMsRef.current = null;
 
     try {
       setConnectionMode('ble');
@@ -368,15 +251,27 @@ export function SensorProvider({ children }) {
       });
 
       device.addEventListener('gattserverdisconnected', () => {
+        commandCharRef.current = null;
         setStatus('disconnected');
         setStatusMessage(`${BLE_DEVICE_NAME} disconnected.`);
       });
 
       const server = await device.gatt.connect();
       const service = await server.getPrimaryService(BLE_SERVICE_UUID);
-      const characteristic = await service.getCharacteristic(BLE_NOTIFY_CHARACTERISTIC_UUID);
-      await characteristic.startNotifications();
-      characteristic.addEventListener('characteristicvaluechanged', handleBleNotification);
+
+      const telemetryChar = await service.getCharacteristic(BLE_TELEMETRY_CHARACTERISTIC_UUID);
+      await telemetryChar.startNotifications();
+      telemetryChar.addEventListener('characteristicvaluechanged', handleBleNotification);
+
+      // Command characteristic — lets the app write control strings back
+      // to the device (PING, LOCK_BOX/UNLOCK_BOX, LED overrides, IR cool
+      // up/down). See HARDWARE_INTEGRATION_SPEC.md section 5.
+      try {
+        commandCharRef.current = await service.getCharacteristic(BLE_COMMAND_CHARACTERISTIC_UUID);
+      } catch (cmdErr) {
+        commandCharRef.current = null;
+        console.warn('Command characteristic not available on this device:', cmdErr);
+      }
 
       bleDeviceRef.current = device;
       setStatus('connected');
@@ -386,11 +281,29 @@ export function SensorProvider({ children }) {
       setStatusMessage(
         (err && err.message) ||
         'Failed to connect over Bluetooth. If the firmware uses different ' +
-        'service/characteristic UUIDs, update BLE_SERVICE_UUID / ' +
-        'BLE_NOTIFY_CHARACTERISTIC_UUID in src/context/SensorContext.jsx.'
+        'service/characteristic UUIDs, update the constants at the top of ' +
+        'src/context/SensorContext.jsx.'
       );
     }
   }, [handleBleNotification, stopStream]);
+
+  // Writes a plain UTF-8 control string to the device's command
+  // characteristic (e.g. "PING", "LOCK_BOX", "UNLOCK_BOX", "RED_ON").
+  // Returns false (and sets a status message) if nothing is connected yet.
+  const sendCommand = useCallback(async (commandText) => {
+    if (!commandCharRef.current) {
+      setStatusMessage('No device command channel available — connect the ESP32 first.');
+      return false;
+    }
+    try {
+      const encoder = new TextEncoder();
+      await commandCharRef.current.writeValue(encoder.encode(commandText));
+      return true;
+    } catch (err) {
+      setStatusMessage((err && err.message) || `Failed to send command "${commandText}".`);
+      return false;
+    }
+  }, []);
 
   const value = {
     connectionMode,
@@ -400,10 +313,13 @@ export function SensorProvider({ children }) {
     lastPayload,
     lastResponse,
     history,
-    startSimulatedStream,
-    sendExtremeTestBurst,
     connectBluetooth,
+    sendCommand,
     stopStream,
+    modelMode,
+    setModelMode,
+    timeAcceleration,
+    setTimeAcceleration,
     bleSupported: typeof navigator !== 'undefined' && !!navigator.bluetooth,
   };
 

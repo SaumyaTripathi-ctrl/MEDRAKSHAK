@@ -1,4 +1,6 @@
-// Location Dictionary containing geographical coordinates for major cities
+// Location Dictionary containing geographical coordinates for major cities.
+// Used only for the demo "Section B: Shipment Route" builder on the
+// Simulation page — the real ESP32/BLE path never touches this file.
 
 export const LOCATIONS = {
   Chennai: [13.0827, 80.2707],
@@ -12,37 +14,4 @@ export const LOCATIONS = {
   Kolkata: [22.5726, 88.3639],
   Ahmedabad: [23.0225, 72.5714],
   Jaipur: [26.9124, 75.7873]
-};
-
-// Predefined static fallback routes
-export const MOCK_ROUTES = {
-  'Chennai-Vellore': {
-    startName: 'Chennai',
-    endName: 'Vellore',
-    distanceKm: 139,
-    durationHours: 2.8,
-    coordinates: [
-      [13.0827, 80.2707],
-      [13.0100, 80.0100],
-      [12.9700, 79.8000],
-      [12.8400, 79.7000],
-      [12.9300, 79.3300],
-      [12.9165, 79.1325]
-    ]
-  },
-  'Default': {
-    startName: 'Chennai',
-    endName: 'Vellore',
-    distanceKm: 124,
-    durationHours: 2.5,
-    coordinates: [
-      [13.0827, 80.2707],
-      [13.0200, 80.0500],
-      [12.9850, 79.8200],
-      [12.9650, 79.7350],
-      [12.9300, 79.5000],
-      [12.9050, 79.3200],
-      [12.9165, 79.1325]
-    ]
-  }
 };

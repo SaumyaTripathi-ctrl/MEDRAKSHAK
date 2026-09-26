@@ -1020,6 +1020,21 @@ svg { display: block; }
   opacity: 0.9;
   box-shadow: 0 4px 18px rgba(239, 68, 68, 0.5);
 }
+.emergency-btn-ack {
+  background-color: var(--accent-amber);
+  border: none;
+  color: #1a1200;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+}
+.emergency-btn-ack:hover {
+  opacity: 0.9;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.5);
+}
+.emergency-btn-ack:disabled {
+  opacity: 0.5;
+  cursor: default;
+  box-shadow: none;
+}
 
 /* ---------- Alerts (Emergency Mode) Page ---------- */
 .alerts-emergency-page {
@@ -1098,6 +1113,70 @@ svg { display: block; }
 }
 .esb-m-card.card-blue strong {
   color: #60a5fa;
+}
+
+/* ----- PCM cooling flap / coolant status ----- */
+.pcm-panel {
+  border-left: 3px solid var(--text-muted);
+  transition: border-color 0.3s ease;
+}
+.pcm-panel.pcm-active {
+  border-left-color: var(--accent-blue);
+}
+.pcm-status-row {
+  display: flex;
+  gap: 28px;
+}
+.pcm-status-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pcm-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-secondary);
+}
+.pcm-value-active {
+  color: var(--accent-blue);
+  text-shadow: 0 0 10px var(--accent-blue-glow);
+}
+.pcm-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--text-muted);
+  border-radius: 14px;
+  padding: 14px 22px;
+  color: var(--text-secondary);
+}
+.pcm-banner.pcm-active {
+  border-left-color: var(--accent-blue);
+  background-color: var(--accent-blue-glow);
+  color: #60a5fa;
+}
+.pcm-banner-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.pcm-banner-text strong {
+  font-size: 0.9rem;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.pcm-banner-text span {
+  font-size: 0.75rem;
+  color: inherit;
+}
+.pcm-spin {
+  animation: pcmSpin 2.2s linear infinite;
+}
+@keyframes pcmSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
 .emergency-routing-grid {
@@ -1227,6 +1306,11 @@ svg { display: block; }
 }
 .rec-status-row {
   margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .active-dot-row {
   display: flex;
@@ -1234,6 +1318,12 @@ svg { display: block; }
   gap: 8px;
   font-size: 0.8rem;
   color: var(--text-secondary);
+}
+.rec-coords {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
 }
 .green-dot {
   width: 8px;

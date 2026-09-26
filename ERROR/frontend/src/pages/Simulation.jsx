@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { routeService } from '../services/routeService.js';
-import { logService } from '../services/logService.js';
 import { useRoute } from '../context/RouteContext.jsx';
-import { LOCATIONS } from '../data/locations.js';
-import { Package, MapPin, Play, ArrowRight, Radio, Bluetooth, Square, AlertOctagon } from 'lucide-react';
+import { Package, MapPin, ArrowRight, Radio, Square, Zap, FlaskConical, Gauge } from 'lucide-react';
+
+const TIME_SPEEDS = [1, 5, 10, 20];
 
 const PRODUCT_PROFILES = [
   {
@@ -30,35 +30,40 @@ const PRODUCT_PROFILES = [
 ];
 
 export default function Simulation({
-  onStartSimulation,
-  onConnectRealDevice,
-  onForceExtremeTest,
-  onStopSimulation,
+  onConnectDevice,
+  onDisconnect,
+  onPingDevice,
   activeProduct,
   onSelectProduct,
-  simulationState,
   sensorStatus,
   sensorStatusMessage,
   connectionMode,
   bleSupported,
   lastPacket,
-  lastResponse
+  lastResponse,
+  modelMode,
+  onSetModelMode,
+  timeAcceleration,
+  onSetTimeAcceleration
 }) {
-  const { routeState, updateRoute } = useRoute();
-  const [startLoc, setStartLoc] = useState('Chennai');
-  const [destLoc, setDestLoc] = useState('Bangalore');
+  const { routeState, setPlannedRoute } = useRoute();
+  const plannedRoute = routeState.plannedRoute;
+  const [startLoc, setStartLoc] = useState(plannedRoute ? plannedRoute.startName : 'Chennai');
+  const [destLoc, setDestLoc] = useState(plannedRoute ? plannedRoute.endName : 'Bangalore');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isBuildingRoute, setIsBuildingRoute] = useState(false);
 
-  useEffect(() => {
-    if (routeState) {
-      setStartLoc(routeState.startName);
-      setDestLoc(routeState.endName);
-    }
-  }, [routeState]);
+  // connectionMode flips to 'ble' the moment a connection attempt STARTS,
+  // before it's known to succeed — so connectionMode alone can't tell us
+  // whether a device is actually connected. A failed attempt (status
+  // 'error') or a lost connection (status 'disconnected', e.g. the board
+  // powered off or walked out of range) must not keep the form locked, or
+  // the product/route inputs stay disabled forever after any failure.
+  const isConnected = connectionMode !== 'idle' && (sensorStatus === 'connecting' || sensorStatus === 'connected');
 
   const handleCreateRoute = async () => {
     setErrorMessage('');
-    
+
     const cleanStart = routeService.normalizeName(startLoc);
     const cleanDest = routeService.normalizeName(destLoc);
 
@@ -67,32 +72,28 @@ export default function Simulation({
       return;
     }
 
-    if (!LOCATIONS[cleanStart]) {
-      setErrorMessage(`Unknown Start Location: "${startLoc}". Supported cities: Chennai, Bangalore, Goa, Kashmir, Delhi, Mumbai, Pune, Kolkata, Hyderabad, Ahmedabad, Jaipur.`);
-      return;
-    }
+    setIsBuildingRoute(true);
 
-    if (!LOCATIONS[cleanDest]) {
-      setErrorMessage(`Unknown Destination Location: "${destLoc}". Supported cities: Chennai, Bangalore, Goa, Kashmir, Delhi, Mumbai, Pune, Kolkata, Hyderabad, Ahmedabad, Jaipur.`);
+    // Trigger the real ESP32 Bluetooth connection immediately, in this same
+    // click handler — Web Bluetooth's device picker requires a direct user
+    // gesture and won't open if fired after an awaited network call below.
+    if (!bleSupported) {
+      setErrorMessage(
+        'Web Bluetooth is not available in this browser/context — use Chrome or Edge ' +
+        'served from http://127.0.0.1 or https.'
+      );
+      setIsBuildingRoute(false);
       return;
     }
+    onConnectDevice();
 
     try {
       const resolvedRoute = await routeService.createRoute(cleanStart, cleanDest);
-      updateRoute(resolvedRoute);
-
-      logService.addLog({
-        event_type: 'ROUTE',
-        message: `Global active route updated from ${resolvedRoute.startName} to ${resolvedRoute.endName}`,
-        parameter: 'GPS',
-        value: `${resolvedRoute.distanceKm} km`,
-        severity: 'INFO',
-        latitude: resolvedRoute.startCoordinates[0],
-        longitude: resolvedRoute.startCoordinates[1],
-        location_name: resolvedRoute.startName
-      });
+      setPlannedRoute(resolvedRoute);
     } catch (err) {
-      setErrorMessage('Failed to build route path. Please try again.');
+      setErrorMessage(err.message || 'Failed to build route path. Please try again.');
+    } finally {
+      setIsBuildingRoute(false);
     }
   };
 
@@ -100,15 +101,14 @@ export default function Simulation({
     <div className="simulation-page-wrapper">
       <div className="panel simulation-config-panel">
         <div className="panel-header">
-          <h3>DEMONSTRATION SIMULATION CONFIGURATION</h3>
-          {simulationState && simulationState.isRunning && (
+          <h3>SHIPMENT SETUP</h3>
+          {isConnected && (
             <span className="live-pill">
-              STATUS: {simulationState.stage}
+              {sensorStatus.toUpperCase()}
             </span>
           )}
         </div>
 
-        {/* Validation Errors */}
         {errorMessage && (
           <div className="validation-error-alert" style={{ marginBottom: '16px' }}>
             {errorMessage}
@@ -127,7 +127,7 @@ export default function Simulation({
                 <div
                   key={p.id}
                   className={`product-profile-card${isSelected ? ' selected' : ''}`}
-                  onClick={() => !simulationState.isRunning && onSelectProduct(p)}
+                  onClick={() => !isConnected && onSelectProduct(p)}
                 >
                   <span className="card-badge">{p.id === 'ROOM_TEMP_MEDS' ? 'Standard' : 'Cold Chain'}</span>
                   <h5>{p.name}</h5>
@@ -138,19 +138,19 @@ export default function Simulation({
           </div>
         </div>
 
-        {/* Section B: Locations */}
+        {/* Section B: Shipment Route — set it, and the ESP32 connects automatically */}
         <div className="sim-section spacing-top">
           <h4 className="sim-section-title">
-            <MapPin size={16} /> B. LOCATION
+            <MapPin size={16} /> B. SHIPMENT ROUTE
           </h4>
-          <div className="sim-location-inputs">
+          <div className="sim-location-inputs" style={{ marginTop: 12 }}>
             <div className="input-group">
               <label>START LOCATION</label>
               <input
                 type="text"
                 placeholder="e.g. Chennai"
                 value={startLoc}
-                onChange={(e) => !simulationState.isRunning && setStartLoc(e.target.value)}
+                onChange={(e) => !isConnected && setStartLoc(e.target.value)}
               />
             </div>
             <div className="arrow-connector">
@@ -162,145 +162,150 @@ export default function Simulation({
                 type="text"
                 placeholder="e.g. Bangalore"
                 value={destLoc}
-                onChange={(e) => !simulationState.isRunning && setDestLoc(e.target.value)}
+                onChange={(e) => !isConnected && setDestLoc(e.target.value)}
               />
             </div>
-            <button 
-              className="route-build-btn" 
+            <button
+              className="route-build-btn"
               onClick={handleCreateRoute}
-              disabled={simulationState.isRunning}
+              disabled={isConnected || isBuildingRoute}
             >
-              CREATE ROUTE
+              {isBuildingRoute ? 'CONNECTING...' : 'SET ROUTE & CONNECT'}
             </button>
           </div>
-        </div>
 
-        {/* Route Details Panel */}
-        {routeState && (
-          <div className="route-summary-panel">
-            <div className="summary-field">
-              <span className="sum-label">GLOBAL ACTIVE ROUTE</span>
-              <strong className="sum-value">{routeState.startName} to {routeState.endName}</strong>
-            </div>
-            <div className="summary-field">
-              <span className="sum-label">DISTANCE</span>
-              <strong className="sum-value">{routeState.distanceKm} km</strong>
-            </div>
-            <div className="summary-field">
-              <span className="sum-label">ESTIMATED TIME</span>
-              <strong className="sum-value">{routeState.estimatedTime}</strong>
-            </div>
-          </div>
-        )}
-
-        {/* Section C: Live ESP32 Connection */}
-        <div className="sim-section spacing-top">
-          <h4 className="sim-section-title">
-            <Radio size={16} /> C. LIVE ESP32 CONNECTION
-          </h4>
-          <p className="product-range-text" style={{ marginBottom: 12 }}>
-            Every reading below is sent for real to the FastAPI backend
-            (<code>/sensor-data</code>) and runs through the real feature
-            engineering + weather + ML pipeline. No hardware is required —
-            use the simulated stream to exercise the full system today.
-          </p>
-
-          {activeProduct && routeState && (
-            <div className="sim-start-row" style={{ gap: 10, flexWrap: 'wrap' }}>
-              <button
-                className="sim-start-btn"
-                onClick={onStartSimulation}
-                disabled={simulationState.isRunning}
-              >
-                <Play size={16} fill="#fff" />
-                {simulationState.isRunning && connectionMode === 'simulated'
-                  ? 'SIMULATED STREAM RUNNING...'
-                  : 'START SIMULATED ESP32 STREAM'}
-              </button>
-
-              <button
-                className="route-build-btn"
-                onClick={onConnectRealDevice}
-                disabled={simulationState.isRunning || !bleSupported}
-                title={!bleSupported ? 'Web Bluetooth is not available in this browser' : ''}
-              >
-                <Bluetooth size={16} />
-                CONNECT ESP32 VIA BLUETOOTH
-              </button>
-
-              <button
-                className="route-build-btn"
-                style={{ borderColor: '#ef4444', color: '#ef4444' }}
-                onClick={onForceExtremeTest}
-                disabled={simulationState.isRunning}
-                title="Sends a burst of deliberately out-of-range readings so you can immediately see the CRITICAL alert, emergency modal, and live cold-storage reroute — without waiting for the gradual drift."
-              >
-                <AlertOctagon size={16} />
-                TEST: FORCE EXTREME / CRITICAL CASE
-              </button>
-
-              {simulationState.isRunning && (
-                <button className="route-build-btn" onClick={onStopSimulation}>
-                  <Square size={14} />
-                  STOP
-                </button>
-              )}
+          {plannedRoute && (
+            <div className="route-summary-panel">
+              <div className="summary-field">
+                <span className="sum-label">ACTIVE ROUTE</span>
+                <strong className="sum-value">{plannedRoute.startName} to {plannedRoute.endName}</strong>
+              </div>
+              <div className="summary-field">
+                <span className="sum-label">DISTANCE</span>
+                <strong className="sum-value">{plannedRoute.distanceKm} km</strong>
+              </div>
+              <div className="summary-field">
+                <span className="sum-label">ESTIMATED TIME</span>
+                <strong className="sum-value">{plannedRoute.estimatedTime}</strong>
+              </div>
             </div>
           )}
-
-          <p className="product-range-text" style={{ marginTop: 8 }}>
-            Not sure how to check the extreme/CRITICAL case? Click <strong>TEST: FORCE
-            EXTREME / CRITICAL CASE</strong> above — it fires ~8 badly out-of-range readings
-            back-to-back straight at the backend. Within a few seconds you should see: a
-            SHOCK popup, a TEMPERATURE popup, then the red emergency modal
-            ("🚨 CRITICAL COLD-CHAIN EXCURSION"). Click <strong>GO TO EMERGENCY ROUTE</strong>
-            on that modal (or open the <strong>Alerts</strong> page) to see the live,
-            road-routed cold-storage recommendation.
-          </p>
 
           {!bleSupported && (
             <p className="product-range-text" style={{ marginTop: 8 }}>
               Web Bluetooth isn't available in this browser/context — use Chrome or Edge
-              served from <code>http://127.0.0.1</code>. The simulated stream works everywhere.
+              served from <code>http://127.0.0.1</code> or https.
             </p>
           )}
-
-          {sensorStatusMessage && (
-            <div className="route-summary-panel" style={{ marginTop: 12 }}>
-              <div className="summary-field">
-                <span className="sum-label">CONNECTION</span>
-                <strong className="sum-value">
-                  {connectionMode.toUpperCase()} · {sensorStatus.toUpperCase()}
-                </strong>
-              </div>
-              <div className="summary-field" style={{ flex: 2 }}>
-                <span className="sum-label">STATUS</span>
-                <strong className="sum-value">{sensorStatusMessage}</strong>
-              </div>
-            </div>
-          )}
-
-          {(lastPacket || lastResponse) && (
-            <div className="route-summary-panel" style={{ marginTop: 12, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
-              {lastPacket && (
-                <div>
-                  <span className="sum-label">LAST RAW ESP32 PACKET (post BLE-gateway conversion)</span>
-                  <pre style={{ fontSize: 11, overflowX: 'auto', margin: '6px 0 0' }}>
-                    {JSON.stringify(lastPacket, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {lastResponse && lastResponse.prediction && (
-                <div>
-                  <span className="sum-label">LAST BACKEND PREDICTION</span>
-                  <pre style={{ fontSize: 11, overflowX: 'auto', margin: '6px 0 0' }}>
-                    {JSON.stringify(lastResponse.prediction, null, 2)}
-                  </pre>
-                </div>
-              )}
-            </div>
-          )}
         </div>
+
+        {/* Section C: Prediction model — switchable live, no reconnect needed */}
+        <div className="sim-section spacing-top">
+          <h4 className="sim-section-title">
+            <FlaskConical size={16} /> C. PREDICTION MODEL
+          </h4>
+          <div className="sim-start-row" style={{ gap: 10, marginTop: 12 }}>
+            <button
+              className="route-build-btn"
+              onClick={() => onSetModelMode('real')}
+              style={modelMode === 'real' ? { outline: '2px solid currentColor' } : { opacity: 0.6 }}
+            >
+              REAL MODEL
+            </button>
+            <button
+              className="route-build-btn"
+              onClick={() => onSetModelMode('demo')}
+              style={modelMode === 'demo' ? { outline: '2px solid currentColor' } : { opacity: 0.6 }}
+            >
+              DEMO MODE
+            </button>
+            <span className="live-pill">
+              ACTIVE: {modelMode === 'demo' ? 'DEMO MODE' : 'REAL MODEL'}
+            </span>
+          </div>
+        </div>
+
+        {/* Section D: Time acceleration — speeds up the simulated clock fed
+            into the backend's ramp calculation, independent of GPS/real
+            wall-clock time. Switchable live, no reconnect needed. */}
+        <div className="sim-section spacing-top">
+          <h4 className="sim-section-title">
+            <Gauge size={16} /> D. TIME ACCELERATION
+          </h4>
+          <div className="sim-start-row" style={{ gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+            {TIME_SPEEDS.map((speed) => (
+              <button
+                key={speed}
+                className="route-build-btn"
+                onClick={() => onSetTimeAcceleration(speed)}
+                style={timeAcceleration === speed ? { outline: '2px solid currentColor' } : { opacity: 0.6 }}
+              >
+                {speed}×
+              </button>
+            ))}
+            <span className="live-pill">
+              SPEED: {timeAcceleration}×
+            </span>
+          </div>
+        </div>
+
+        {/* Device status — read-only, no manual connect controls */}
+        {(plannedRoute || isConnected) && (
+          <div className="sim-section spacing-top">
+            <h4 className="sim-section-title">
+              <Radio size={16} /> DEVICE STATUS
+            </h4>
+
+            {sensorStatusMessage && (
+              <div className="route-summary-panel">
+                <div className="summary-field">
+                  <span className="sum-label">CONNECTION</span>
+                  <strong className="sum-value">
+                    {connectionMode.toUpperCase()} · {sensorStatus.toUpperCase()}
+                  </strong>
+                </div>
+                <div className="summary-field" style={{ flex: 2 }}>
+                  <span className="sum-label">STATUS</span>
+                  <strong className="sum-value">{sensorStatusMessage}</strong>
+                </div>
+              </div>
+            )}
+
+            {isConnected && (
+              <div className="sim-start-row" style={{ gap: 10, marginTop: 10 }}>
+                <button className="route-build-btn" onClick={onPingDevice}>
+                  <Zap size={14} />
+                  PING DEVICE
+                </button>
+                <button className="route-build-btn" onClick={onDisconnect}>
+                  <Square size={14} />
+                  DISCONNECT
+                </button>
+              </div>
+            )}
+
+            {(lastPacket || lastResponse) && (
+              <div className="route-summary-panel" style={{ marginTop: 12, flexDirection: 'column', alignItems: 'stretch', gap: 10 }}>
+                {lastPacket && (
+                  <div>
+                    <span className="sum-label">LAST RAW ESP32 PACKET (as received over BLE)</span>
+                    <pre style={{ fontSize: 11, overflowX: 'auto', margin: '6px 0 0' }}>
+                      {JSON.stringify(lastPacket, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                {lastResponse && lastResponse.prediction && (
+                  <div>
+                    <span className="sum-label">LAST BACKEND PREDICTION</span>
+                    <pre style={{ fontSize: 11, overflowX: 'auto', margin: '6px 0 0' }}>
+                      {JSON.stringify(lastResponse.prediction, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

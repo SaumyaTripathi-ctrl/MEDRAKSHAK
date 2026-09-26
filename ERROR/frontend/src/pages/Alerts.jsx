@@ -4,9 +4,10 @@ import { useRoute } from '../context/RouteContext.jsx';
 import { routeService } from '../services/routeService.js';
 import EmergencyRouteMap from '../components/EmergencyRouteMap.jsx';
 import ColdStorageRecommendation from '../components/ColdStorageRecommendation.jsx';
-import { ShieldAlert, Bell } from 'lucide-react';
+import PcmFlapStatus from '../components/PcmFlapStatus.jsx';
+import { ShieldAlert, Bell, BellOff } from 'lucide-react';
 
-export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFacilities }) {
+export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFacilities, acknowledged, onAcknowledge }) {
   const { routeState, setReroute } = useRoute();
   const [selectedStorage, setSelectedStorage] = useState(null);
   const [emergencyRoutePath, setEmergencyRoutePath] = useState(null);
@@ -14,19 +15,18 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
   const [activeTab, setActiveTab] = useState('ALL');
 
   const {
-    startCoordinates,
-    endCoordinates,
-    routeCoordinates,
+    trail,
     truckPosition,
     routeStatus,
-    recommendedFacility
+    plannedRoute
   } = routeState;
 
   useEffect(() => {
     setLogs(logService.getLogs());
   }, []);
 
-  // Fetch real road route coordinates between Truck and selected facility
+  // Fetch a real road route between the truck's live position and the
+  // selected facility.
   useEffect(() => {
     const fetchDetour = async () => {
       if (selectedStorage && truckPosition) {
@@ -49,11 +49,16 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
   };
 
   const handleConfirmReroute = () => {
-    if (!selectedStorage || !emergencyRoutePath) return;
+    if (!selectedStorage || !emergencyRoutePath || !truckPosition) return;
 
     // Save globally in Context
     setReroute(selectedStorage, emergencyRoutePath);
 
+    // Stamped with the shipment's own last-reading instant (see App.jsx's
+    // lastReadingTimestamp) rather than the real click-time, so a reroute
+    // logged while time acceleration is running lands on the same
+    // accelerated timeline as the sensor-triggered log entries around it,
+    // instead of jumping back to real time.
     logService.addLog({
       event_type: 'ROUTE',
       message: `Shipment rerouted to cold storage: ${selectedStorage.name}`,
@@ -62,7 +67,8 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
       severity: 'CRITICAL',
       latitude: selectedStorage.latitude,
       longitude: selectedStorage.longitude,
-      location_name: selectedStorage.name
+      location_name: selectedStorage.name,
+      timestamp: shipmentState.lastReadingTimestamp
     });
 
     logService.addLog({
@@ -73,15 +79,18 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
       severity: 'INFO',
       latitude: truckPosition[0],
       longitude: truckPosition[1],
-      location_name: 'Transit Diversion Point'
+      location_name: 'Transit Diversion Point',
+      timestamp: shipmentState.lastReadingTimestamp
     });
   };
 
   // Filter logs for normal Mode
-  const alertLogs = logs.filter(log => 
-    log.event_type === 'TEMPERATURE' || 
-    log.event_type === 'HUMIDITY' || 
-    log.event_type === 'SHOCK' || 
+  const alertLogs = logs.filter(log =>
+    log.event_type === 'TEMPERATURE' ||
+    log.event_type === 'HUMIDITY' ||
+    log.event_type === 'SHOCK' ||
+    log.event_type === 'DOOR' ||
+    log.event_type === 'BATTERY' ||
     log.event_type === 'CRITICAL' ||
     log.event_type === 'ROUTE' ||
     log.event_type === 'SYSTEM'
@@ -96,11 +105,6 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
   });
 
   if (emergencyMode) {
-    const productRange = shipmentState && shipmentState.product ? {
-      minTemp: shipmentState.product.minTemp,
-      maxTemp: shipmentState.product.maxTemp
-    } : { minTemp: 2, maxTemp: 8 };
-
     return (
       <div className="alerts-emergency-page">
         {/* Emergency Dashboard Header */}
@@ -130,7 +134,21 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
               <strong>{shipmentState.safeTime}</strong>
             </div>
           </div>
+          <button
+            className="emergency-btn-ack"
+            style={{ flex: 'none', padding: '10px 18px' }}
+            onClick={onAcknowledge}
+            disabled={acknowledged}
+            title="Silences the ESP32's critical buzzer. The alert tier and LEDs keep tracking live readings regardless."
+          >
+            <BellOff size={15} style={{ marginRight: 6, verticalAlign: -2 }} />
+            {acknowledged ? 'ALARM SILENCED' : 'ACKNOWLEDGE'}
+          </button>
         </div>
+
+        {/* PCM cooling flap / coolant status — kept as its own distinct
+            box (hardware novelty), not folded into the metric cards above. */}
+        <PcmFlapStatus active={!!shipmentState.coolingActive} variant="banner" />
 
         {/* Emergency Rerouting Grid */}
         <div className="emergency-routing-grid">
@@ -142,9 +160,8 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
             </div>
             <EmergencyRouteMap
               truckLocation={truckPosition}
-              startLocation={startCoordinates}
-              destinationLocation={endCoordinates}
-              originalRoute={routeCoordinates}
+              trail={trail}
+              plannedRoute={plannedRoute}
               nearbyFacilities={selectedStorage ? [selectedStorage] : []}
               recommendedFacility={selectedStorage}
               emergencyRoute={emergencyRoutePath}
@@ -154,8 +171,6 @@ export default function Alerts({ shipmentState, emergencyMode, liveColdStorageFa
 
           {/* Details & Recommendation Card */}
           <ColdStorageRecommendation
-            truckLocation={truckPosition}
-            productRange={productRange}
             onSelectStorage={handleSelectStorage}
             onRerouteConfirm={handleConfirmReroute}
             routeStatus={routeStatus}
